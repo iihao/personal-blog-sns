@@ -1,0 +1,439 @@
+/* ===================================
+   深色模式样式
+   使用 CSS 变量实现主题切换
+   =================================== */
+
+:root {
+  /* 浅色模式变量 (默认) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-color: #e5e7eb;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --input-bg: #ffffff;
+  --input-border: #e5e7eb;
+}
+
+.dark {
+  /* 深色模式变量 */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --border-color: #334155;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --card-bg: rgba(30, 41, 59, 0.95);
+  --header-bg: rgba(15, 23, 42, 0.8);
+  --input-bg: #1e293b;
+  --input-border: #475569;
+}
+
+/* ===================================
+   基础样式
+   =================================== */
+
+.dark body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: var(--text-primary);
+}
+
+.dark .home-container {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* ===================================
+   头部样式
+   =================================== */
+
+.dark .site-header {
+  background: var(--header-bg);
+  border-bottom-color: var(--border-color);
+}
+
+.dark .site-title {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark .site-description {
+  color: var(--text-secondary);
+}
+
+.dark .theme-toggle-container {
+  /* 深色模式下容器样式 */
+}
+
+/* ===================================
+   卡片样式
+   =================================== */
+
+.dark .timeline-card {
+  background: var(--card-bg);
+  box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+.dark .timeline-card:hover {
+  box-shadow: 0 8px 30px rgba(96, 165, 250, 0.2);
+}
+
+.dark .card-title {
+  color: var(--text-primary);
+}
+
+.dark .card-excerpt {
+  color: var(--text-secondary);
+}
+
+.dark .card-meta {
+  color: var(--text-secondary);
+}
+
+/* ===================================
+   标签和分类
+   =================================== */
+
+.dark .tag {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+
+.dark .tag:hover {
+  background: rgba(96, 165, 250, 0.25);
+}
+
+.dark .card-category {
+  color: #60a5fa;
+}
+
+/* ===================================
+   日期标记
+   =================================== */
+
+.dark .card-date {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+}
+
+/* ===================================
+   链接和按钮
+   =================================== */
+
+.dark .read-more {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.dark .read-more:hover {
+  background: rgba(96, 165, 250, 0.25);
+}
+
+.dark .page-btn {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: #60a5fa;
+}
+
+.dark .page-btn:hover:not(:disabled) {
+  background: #3b82f6;
+  color: white;
+}
+
+.dark .page-info {
+  color: var(--text-secondary);
+}
+
+/* ===================================
+   搜索和筛选
+   =================================== */
+
+.dark .search-input {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.dark .search-input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+}
+
+.dark .search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.dark .filter-select {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.dark .filter-select:focus {
+  border-color: #60a5fa;
+}
+
+.dark .search-box i {
+  color: var(--text-tertiary);
+}
+
+/* ===================================
+   加载和空状态
+   =================================== */
+
+.dark .loading-spinner {
+  border-color: rgba(96, 165, 250, 0.2);
+  border-top-color: #60a5fa;
+}
+
+.dark .empty-state h2 {
+  color: var(--text-primary);
+}
+
+.dark .empty-state p {
+  color: var(--text-secondary);
+}
+
+/* ===================================
+   页脚
+   =================================== */
+
+.dark .site-footer {
+  background: var(--header-bg);
+  border-top-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+/* ===================================
+   文章详情页
+   =================================== */
+
+.dark .post-view {
+  color: var(--text-primary);
+}
+
+.dark .post-title {
+  color: var(--text-primary);
+}
+
+.dark .post-meta-top {
+  color: var(--text-secondary);
+}
+
+.dark .post-author {
+  color: var(--text-secondary);
+}
+
+.dark .post-content {
+  color: var(--text-secondary);
+}
+
+.dark .post-content :deep(h1),
+.dark .post-content :deep(h2),
+.dark .post-content :deep(h3) {
+  color: var(--text-primary);
+}
+
+.dark .post-content :deep(code) {
+  background: var(--bg-tertiary);
+  color: #fbbf24;
+}
+
+.dark .post-content :deep(pre) {
+  background: #1e1e2e;
+  color: #e0e0e0;
+}
+
+.dark .post-content :deep(pre code) {
+  color: inherit;
+}
+
+.dark .post-content :deep(blockquote) {
+  border-left-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+  color: var(--text-secondary);
+}
+
+.dark .post-content :deep(a) {
+  color: #60a5fa;
+}
+
+.dark .post-content :deep(a:hover) {
+  border-bottom-color: #60a5fa;
+}
+
+.dark .post-content :deep(img) {
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+/* ===================================
+   导航
+   =================================== */
+
+.dark .post-navigation {
+  border-top-color: var(--border-color);
+}
+
+.dark .nav-link {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.dark .nav-link:hover {
+  background: rgba(96, 165, 250, 0.2);
+}
+
+.dark .nav-label {
+  color: var(--text-secondary);
+}
+
+.dark .nav-title {
+  color: #60a5fa;
+}
+
+/* ===================================
+   评论区
+   =================================== */
+
+.dark .comments-section {
+  border-top-color: var(--border-color);
+}
+
+.dark .comments-title {
+  color: var(--text-primary);
+}
+
+.dark .comment-form {
+  background: var(--bg-secondary);
+}
+
+.dark .comment-form h3 {
+  color: var(--text-primary);
+}
+
+.dark .form-input,
+.dark .form-textarea {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.dark .form-input:focus,
+.dark .form-textarea:focus {
+  border-color: #60a5fa;
+}
+
+.dark .form-input::placeholder,
+.dark .form-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.dark .submit-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.dark .submit-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.dark .no-comments {
+  color: var(--text-secondary);
+}
+
+.dark .comment-item {
+  background: var(--bg-secondary);
+}
+
+.dark .comment-author {
+  color: var(--text-primary);
+}
+
+.dark .comment-date {
+  color: var(--text-secondary);
+}
+
+.dark .comment-text {
+  color: var(--text-secondary);
+}
+
+.dark .comment-avatar {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+}
+
+/* ===================================
+   滚动条 (WebKit)
+   =================================== */
+
+.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 5px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ===================================
+   选中文本
+   =================================== */
+
+.dark ::selection {
+  background: rgba(96, 165, 250, 0.3);
+  color: var(--text-primary);
+}
+
+/* ===================================
+   时间线
+   =================================== */
+
+.dark .timeline::before {
+  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+}
+
+.dark .marker-dot {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-color: var(--bg-secondary);
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.4);
+}
+
+.dark .marker-line {
+  background: rgba(96, 165, 250, 0.3);
+}
+
+/* ===================================
+   工具提示和过渡
+   =================================== */
+
+.dark * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, 
+              color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ===================================
+   打印样式
+   =================================== */
+
+@media print {
+  .dark {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f9fafb;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+  }
+}

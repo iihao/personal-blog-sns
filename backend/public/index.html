@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客管理后台 - blog.sqlboy.top</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #007aff;
+            --primary-hover: #0056b3;
+            --secondary-color: #6c757d;
+            --success-color: #34c759;
+            --danger-color: #ff3b30;
+            --warning-color: #ff9500;
+            --info-color: #5ac8fa;
+            --light-color: #f5f5f7;
+            --dark-color: #1d1d1f;
+            --border-color: #e0e0e0;
+            --card-bg: #ffffff;
+            --sidebar-bg: #f5f5f7;
+            --header-bg: #ffffff;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--light-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .logo h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            margin: 0 10px 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(0,122,255,0.1);
+            color: var(--primary-color);
+        }
+
+        .nav-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            opacity: 0.9;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            background: var(--light-color);
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Posts List */
+        .posts-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .post-item {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .post-item:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .post-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .post-action-btn {
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .post-action-edit {
+            background: rgba(52, 199, 89, 0.1);
+            color: var(--success-color);
+        }
+
+        .post-action-edit:hover {
+            background: rgba(52, 199, 89, 0.2);
+        }
+
+        .post-action-delete {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--danger-color);
+        }
+
+        .post-action-delete:hover {
+            background: rgba(255, 59, 48, 0.2);
+        }
+
+        /* Media Grid */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 16px;
+        }
+
+        .media-item {
+            position: relative;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            aspect-ratio: 1;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .media-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .media-action-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* Comments List */
+        .comments-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .comment-item {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .comment-date {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .comment-content {
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 10px 0;
+            }
+            
+            .nav-item {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+            
+            .header {
+                padding: 12px 16px;
+            }
+            
+            .content-area {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-blog"></i> 博客管理</h1>
+            </div>
+            <a href="/admin/index.html" class="nav-item active" style="text-decoration: none; color: inherit;">
+                <i class="fas fa-home"></i> 仪表盘
+            </a>
+            <a href="/admin/articles.html" class="nav-item" style="text-decoration: none; color: inherit;">
+                <i class="fas fa-newspaper"></i> 文章管理
+            </a>
+            <a href="/admin/media.html" class="nav-item" style="text-decoration: none; color: inherit;">
+                <i class="fas fa-images"></i> 媒体库
+            </a>
+            <a href="/admin/comments.html" class="nav-item" style="text-decoration: none; color: inherit;">
+                <i class="fas fa-comments"></i> 评论管理
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div class="header-title">博客管理后台</div>
+                <div class="user-info">
+                    <div class="user-avatar">H</div>
+                    <span>黄强</span>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Dashboard Section -->
+                <div id="dashboard-section" class="section active">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">系统概览</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div class="card" style="text-align: center; padding: 20px;">
+                                <div style="font-size: 24px; font-weight: bold; color: var(--primary-color);">4</div>
+                                <div style="color: var(--text-secondary); margin-top: 8px;">文章总数</div>
+                            </div>
+                            <div class="card" style="text-align: center; padding: 20px;">
+                                <div style="font-size: 24px; font-weight: bold; color: var(--success-color);">0</div>
+                                <div style="color: var(--text-secondary); margin-top: 8px;">待审核评论</div>
+                            </div>
+                            <div class="card" style="text-align: center; padding: 20px;">
+                                <div style="font-size: 24px; font-weight: bold; color: var(--info-color);">0</div>
+                                <div style="color: var(--text-secondary); margin-top: 8px;">媒体文件</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Posts Section -->
+                <div id="posts-section" class="section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">文章列表</div>
+                            <button class="btn btn-primary" onclick="showSection('create-post')">
+                                <i class="fas fa-plus"></i> 新建文章
+                            </button>
+                        </div>
+                        <div class="posts-list" id="posts-list">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create/Edit Post Section -->
+                <div id="create-post-section" class="section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">编辑文章</div>
+                            <button class="btn btn-outline" onclick="showSection('posts')">
+                                <i class="fas fa-arrow-left"></i> 返回列表
+                            </button>
+                        </div>
+                        <form id="post-form">
+                            <div class="form-group">
+                                <label class="form-label">标题</label>
+                                <input type="text" id="post-title" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">标签（用逗号分隔）</label>
+                                <input type="text" id="post-tags" class="form-control" placeholder="Vue, JavaScript, 技术">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">状态</label>
+                                <select id="post-status" class="form-control">
+                                    <option value="1">已发布</option>
+                                    <option value="0">草稿</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">内容</label>
+                                <textarea id="post-content" class="form-control" required></textarea>
+                            </div>
+                            <div style="display: flex; gap: 12px;">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> 保存文章
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="showSection('posts')">
+                                    取消
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Media Section -->
+                <div id="media-section" class="section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">媒体库</div>
+                            <button class="btn btn-primary" onclick="document.getElementById('media-upload').click()">
+                                <i class="fas fa-upload"></i> 上传图片
+                            </button>
+                            <input type="file" id="media-upload" accept="image/*" multiple style="display: none;">
+                        </div>
+                        <div class="media-grid" id="media-grid">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-image" style="font-size: 48px; margin-bottom: 16px;"></i>
+                                <div>暂无媒体文件</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments Section -->
+                <div id="comments-section" class="section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">评论管理</div>
+                        </div>
+                        <div class="comments-list" id="comments-list">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 16px;"></i>
+                                <div>暂无评论</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Config Section -->
+                <div id="config-section" class="section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">博客设置</div>
+                        </div>
+                        <form id="config-form">
+                            <div class="form-group">
+                                <label class="form-label">博客标题</label>
+                                <input type="text" id="blog-title" class="form-control" value="blog.sqlboy.top">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">博客简介</label>
+                                <textarea id="blog-description" class="form-control" placeholder="简短描述你的博客..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存设置
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        // Global variables
+        let currentPostId = null;
+        
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                const section = this.getAttribute('data-section');
+                showSection(section);
+            });
+        });
+        
+        // Show section
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId + '-section').classList.add('active');
+            
+            // Load data for specific sections
+            if (sectionId === 'posts') {
+                loadPosts();
+            } else if (sectionId === 'media') {
+                loadMedia();
+            } else if (sectionId === 'comments') {
+                loadComments();
+            }
+        }
+        
+        // Load posts
+        async function loadPosts() {
+            try {
+                const response = await fetch('/api/posts');
+                const data = await response.json();
+                
+                const postsList = document.getElementById('posts-list');
+                if (data.posts && data.posts.length > 0) {
+                    postsList.innerHTML = data.posts.map(post => `
+                        <div class="post-item">
+                            <div class="post-header">
+                                <div>
+                                    <div class="post-title">${post.title}</div>
+                                    <div class="post-meta">
+                                        <span>${new Date(post.created_at).toLocaleDateString('zh-CN')}</span>
+                                        <span>${post.published ? '已发布' : '草稿'}</span>
+                                    </div>
+                                </div>
+                                <div class="post-actions">
+                                    <button class="post-action-btn post-action-edit" onclick="editPost(${post.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="post-action-btn post-action-delete" onclick="deletePost(${post.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="post-content" style="color: var(--text-secondary); font-size: 14px;">
+                                ${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    postsList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">暂无文章</div>';
+                }
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                document.getElementById('posts-list').innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger-color);">加载失败</div>';
+            }
+        }
+        
+        // Edit post
+        async function editPost(postId) {
+            try {
+                const response = await fetch(`/api/posts/${postId}`);
+                const post = await response.json();
+                
+                document.getElementById('post-title').value = post.title;
+                document.getElementById('post-tags').value = post.tags || '';
+                document.getElementById('post-status').value = post.published ? '1' : '0';
+                document.getElementById('post-content').value = post.content;
+                currentPostId = postId;
+                
+                showSection('create-post');
+            } catch (error) {
+                console.error('Error editing post:', error);
+                alert('编辑文章失败');
+            }
+        }
+        
+        // Delete post
+        async function deletePost(postId) {
+            if (!confirm('确定要删除这篇文章吗？')) return;
+            
+            try {
+                const response = await fetch(`/api/posts/${postId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadPosts();
+                } else {
+                    alert('删除文章失败');
+                }
+            } catch (error) {
+                console.error('Error deleting post:', error);
+                alert('删除文章失败');
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('post-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('post-title').value;
+            const tags = document.getElementById('post-tags').value;
+            const content = document.getElementById('post-content').value;
+            const published = document.getElementById('post-status').value === '1';
+            
+            if (!title || !content) {
+                alert('标题和内容不能为空');
+                return;
+            }
+            
+            const postData = {
+                title: title,
+                content: content,
+                tags: tags,
+                published: published
+            };
+            
+            try {
+                let response;
+                if (currentPostId) {
+                    response = await fetch(`/api/posts/${currentPostId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(postData)
+                    });
+                } else {
+                    response = await fetch('/api/posts', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(postData)
+                    });
+                }
+                
+                if (response.ok) {
+                    alert(currentPostId ? '文章更新成功！' : '文章保存成功！');
+                    currentPostId = null;
+                    showSection('posts');
+                } else {
+                    const error = await response.json();
+                    alert('保存失败：' + (error.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Error saving post:', error);
+                alert('保存失败，请检查网络连接');
+            }
+        });
+        
+        // Load media
+        async function loadMedia() {
+            try {
+                const response = await fetch('/api/media');
+                const data = await response.json();
+                
+                const mediaGrid = document.getElementById('media-grid');
+                if (data.media && data.media.length > 0) {
+                    mediaGrid.innerHTML = data.media.map(media => `
+                        <div class="media-item">
+                            <img src="${media.url}" alt="${media.filename}">
+                            <div class="media-actions">
+                                <button class="media-action-btn" onclick="copyMediaUrl('${media.url}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="media-action-btn" style="background: rgba(255,59,48,0.7);" onclick="deleteMedia(${media.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    mediaGrid.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <i class="fas fa-image" style="font-size: 48px; margin-bottom: 16px;"></i>
+                            <div>暂无媒体文件</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading media:', error);
+            }
+        }
+        
+        // Upload media
+        document.getElementById('media-upload').addEventListener('change', async function(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+            
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+            }
+            
+            try {
+                const response = await fetch('/api/media', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    loadMedia();
+                    this.value = ''; // Reset file input
+                } else {
+                    alert('上传失败');
+                }
+            } catch (error) {
+                console.error('Error uploading media:', error);
+                alert('上传失败');
+            }
+        });
+        
+        // Copy media URL
+        function copyMediaUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL已复制到剪贴板');
+            }).catch(err => {
+                console.error('Failed to copy URL:', err);
+            });
+        }
+        
+        // Delete media
+        async function deleteMedia(mediaId) {
+            if (!confirm('确定要删除这个媒体文件吗？')) return;
+            
+            try {
+                const response = await fetch(`/api/media/${mediaId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadMedia();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('Error deleting media:', error);
+                alert('删除失败');
+            }
+        }
+        
+        // Load comments
+        async function loadComments() {
+            try {
+                const response = await fetch('/api/comments');
+                const data = await response.json();
+                
+                const commentsList = document.getElementById('comments-list');
+                if (data.comments && data.comments.length > 0) {
+                    commentsList.innerHTML = data.comments.map(comment => `
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <div class="comment-author">${comment.author || '匿名'}</div>
+                                <div class="comment-date">${new Date(comment.created_at).toLocaleString('zh-CN')}</div>
+                            </div>
+                            <div class="comment-content">${comment.content}</div>
+                            <div style="margin-top: 12px;">
+                                <button class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 12px;" onclick="deleteComment(${comment.id})">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    commentsList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 16px;"></i>
+                            <div>暂无评论</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+        
+        // Delete comment
+        async function deleteComment(commentId) {
+            if (!confirm('确定要删除这条评论吗？')) return;
+            
+            try {
+                const response = await fetch(`/api/comments/${commentId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadComments();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                console.error('Error deleting comment:', error);
+                alert('删除失败');
+            }
+        }
+        
+        // Load config
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                document.getElementById('blog-title').value = config.title || 'blog.sqlboy.top';
+                document.getElementById('blog-description').value = config.description || '';
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+        
+        // Save config
+        document.getElementById('config-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const configData = {
+                title: document.getElementById('blog-title').value,
+                description: document.getElementById('blog-description').value
+            };
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(configData)
+                });
+                
+                if (response.ok) {
+                    alert('配置保存成功！');
+                } else {
+                    alert('保存失败');
+                }
+            } catch (error) {
+                console.error('Error saving config:', error);
+                alert('保存失败');
+            }
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPosts();
+            loadConfig();
+        });
+    </script>
+</body>
+</html>

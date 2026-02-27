@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试按钮</title>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+        }
+        .btn {
+            padding: 12px 24px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>测试页面</h1>
+    <button class="btn" onclick="testClick()">点击测试</button>
+    
+    <div id="test-modal" class="modal">
+        <div class="modal-content">
+            <h2>弹窗成功！</h2>
+            <button class="btn" onclick="closeModal()" style="margin-top: 20px;">关闭</button>
+        </div>
+    </div>
+    
+    <script>
+        function testClick() {
+            alert('按钮点击成功！');
+            document.getElementById('test-modal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('test-modal').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
