@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 const db = new sqlite3.Database('./blog.db');
@@ -42,24 +43,30 @@ const upload = multer({
   }
 });
 
-// Get all media files
-router.get('/', (req, res) => {
+// Get all media files - requires auth
+router.get('/', authenticateToken, (req, res) => {
   db.all('SELECT * FROM media ORDER BY created_at DESC', (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    res.json({ media: rows });
+    // Add url field to each media item
+    const media = (rows || []).map(row => ({
+      ...row,
+      url: row.file_path?.startsWith('/') ? row.file_path : `/uploads/${row.filename}`
+    }));
+    res.json({ media });
   });
 });
 
-// Upload media file
-router.post('/upload', upload.single('file'), (req, res) => {
+// Upload media file - requires auth
+router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
   const filePath = `/uploads/${req.file.filename}`;
-  const stmt = db.prepare('INSERT INTO media (filename, original_name, file_path, file_size, mime_type, created_at) VALUES (?, ?, ?, ?, ?, ?)');
+  const uploadedBy = req.user ? req.user.id : null;
+  const stmt = db.prepare('INSERT INTO media (filename, original_name, file_path, file_size, mime_type, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)');
   
   stmt.run(
     req.file.filename,
@@ -67,7 +74,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
     filePath,
     req.file.size,
     req.file.mimetype,
-    new Date().toISOString(),
+    uploadedBy,
     function(err) {
       if (err) {
         // Clean up uploaded file on error
@@ -82,15 +89,15 @@ router.post('/upload', upload.single('file'), (req, res) => {
         file_path: filePath,
         file_size: req.file.size,
         mime_type: req.file.mimetype,
-        url: `/api/media${filePath}`
+        url: filePath
       });
     }
   );
   stmt.finalize();
 });
 
-// Delete media file
-router.delete('/:id', (req, res) => {
+// Delete media file - requires auth
+router.delete('/:id', authenticateToken, (req, res) => {
   db.get('SELECT * FROM media WHERE id = ?', [req.params.id], (err, row) => {
     if (err) {
       return res.status(500).json({ error: err.message });

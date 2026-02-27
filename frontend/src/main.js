@@ -5,6 +5,7 @@ import router from './router'
 
 import './assets/main.css'
 import './assets/dark-mode.css'
+import './assets/code-highlight.css'
 
 const app = createApp(App)
 const pinia = createPinia()

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #007aff;
+            --primary-dark: #0056b3;
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text: #1d1d1f;
+            --text-secondary: #86868b;
+            --border: #e0e0e0;
+            --radius: 16px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            color: var(--primary-dark);
+            gap: 12px;
+        }
+
+        .article-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 40px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .article-header {
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .article-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            line-height: 1.3;
+            color: var(--text);
+        }
+
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .meta-item i {
+            color: var(--primary);
+        }
+
+        .article-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .tag {
+            padding: 6px 14px;
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .tag:hover {
+            background: rgba(0, 122, 255, 0.2);
+        }
+
+        .article-content {
+            font-size: 17px;
+            line-height: 1.9;
+            color: var(--text);
+        }
+
+        .article-content h1,
+        .article-content h2,
+        .article-content h3 {
+            margin-top: 32px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .article-content h2 {
+            font-size: 28px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .article-content h3 {
+            font-size: 22px;
+        }
+
+        .article-content p {
+            margin-bottom: 20px;
+        }
+
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin: 24px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .article-content ul,
+        .article-content ol {
+            margin: 20px 0;
+            padding-left: 24px;
+        }
+
+        .article-content li {
+            margin-bottom: 12px;
+        }
+
+        .article-content a {
+            color: var(--primary);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .article-content a:hover {
+            border-bottom-color: var(--primary);
+        }
+
+        .article-content blockquote {
+            margin: 24px 0;
+            padding: 16px 24px;
+            border-left: 4px solid var(--primary);
+            background: rgba(0, 122, 255, 0.05);
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        .article-content pre {
+            margin: 24px 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        .article-content code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        .article-content :not(pre) > code {
+            padding: 2px 8px;
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .article-footer {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-secondary);
+        }
+
+        .error-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 768px) {
+            .article-card {
+                padding: 24px;
+            }
+
+            .article-title {
+                font-size: 28px;
+            }
+
+            .article-content {
+                font-size: 16px;
+            }
+
+            .article-content h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-btn">
+                <i class="fas fa-arrow-left"></i> 返回首页
+            </a>
+            <a href="/admin/" class="back-btn">
+                <i class="fas fa-cog"></i> 管理后台
+            </a>
+        </div>
+
+        <div id="article-container">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>正在加载文章...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const postId = window.location.pathname.split('/').pop();
+        
+        async function loadPost() {
+            const container = document.getElementById('article-container');
+            
+            try {
+                const response = await fetch(`/api/posts/${postId}`);
+                
+                if (!response.ok) {
+                    throw new Error('文章不存在');
+                }
+                
+                const data = await response.json();
+                const post = data.post;
+                
+                if (!post) {
+                    throw new Error('文章不存在');
+                }
+                
+                // Update page title
+                document.title = `${post.title} - blog.sqlboy.top`;
+                
+                // Render article
+                container.innerHTML = `
+                    <article class="article-card">
+                        <div class="article-header">
+                            <h1 class="article-title">${escapeHtml(post.title)}</h1>
+                            
+                            <div class="article-meta">
+                                <div class="meta-item">
+                                    <i class="fas fa-user"></i>
+                                    <span>${escapeHtml(post.author || 'Admin')}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>${formatDate(post.created_at)}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>${formatDate(post.updated_at)}</span>
+                                </div>
+                                ${post.category ? `
+                                    <div class="meta-item">
+                                        <i class="fas fa-folder"></i>
+                                        <span>${escapeHtml(post.category)}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${post.tags ? `
+                                <div class="article-tags">
+                                    ${post.tags.split(',').map(tag => `
+                                        <span class="tag">#${escapeHtml(tag.trim())}</span>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="article-content">
+                            ${post.content}
+                        </div>
+                        
+                        <div class="article-footer">
+                            <a href="/" class="back-btn" style="font-size: 16px;">
+                                <i class="fas fa-home"></i> 返回博客首页
+                            </a>
+                        </div>
+                    </article>
+                `;
+                
+            } catch (error) {
+                console.error('Failed to load post:', error);
+                container.innerHTML = `
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h2>文章不存在或已被删除</h2>
+                        <p style="margin-top: 12px;">${error.message}</p>
+                        <a href="/" class="back-btn" style="margin-top: 24px; font-size: 16px;">
+                            <i class="fas fa-home"></i> 返回首页
+                        </a>
+                    </div>
+                `;
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Load post on page load
+        document.addEventListener('DOMContentLoaded', loadPost);
+    </script>
+</body>
+</html>

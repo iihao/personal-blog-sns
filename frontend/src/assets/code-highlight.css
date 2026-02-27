@@ -1,0 +1,208 @@
+/**
+ * 代码语法高亮样式
+ * 基于 GitHub Dark 主题
+ */
+
+/* 基础样式 */
+pre {
+  background: #1e1e2e;
+  color: #e0e0e0;
+  padding: 1.5em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  position: relative;
+}
+
+code {
+  font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+}
+
+/* 行内代码 */
+p code, li code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #fbbf24;
+}
+
+:global(.dark) p code,
+:global(.dark) li code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fbbf24;
+}
+
+/* 代码块语言标签 */
+pre[class*="language-"]::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* 语法高亮颜色 */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.token.punctuation,
+.token.operator {
+  color: #e0e0e0;
+}
+
+.token.namespace {
+  opacity: 0.7;
+}
+
+.token.property,
+.token.keyword,
+.token.tag {
+  color: #f472b6;
+}
+
+.token.class-name,
+.token.function,
+.token.constant {
+  color: #60a5fa;
+}
+
+.token.boolean,
+.token.number {
+  color: #fbbf24;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin {
+  color: #a78bfa;
+}
+
+.token.inserted {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.token.deleted {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #fbbf24;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+.token.attr-value {
+  color: #34d399;
+}
+
+.token.url,
+.token.attr-value .token.punctuation {
+  color: #34d399;
+}
+
+/* 深色模式适配 */
+:global(.dark) pre {
+  background: #1e1e2e;
+  border: 1px solid #334155;
+}
+
+:global(.dark) p code,
+:global(.dark) li code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 代码复制按钮 */
+pre {
+  position: relative;
+}
+
+.copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+}
+
+.copy-button.copied {
+  color: #34d399;
+}
+
+/* 滚动条样式 */
+pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 行号 */
+.line-numbers .line-numbers-rows {
+  border-right: 1px solid #334155;
+  padding-right: 12px;
+  margin-right: 12px;
+}
+
+.line-numbers-rows span {
+  color: #4b5563;
+  counter-increment: linenumber;
+}
+
+.line-numbers-rows span:before {
+  content: counter(linenumber);
+  display: block;
+  text-align: right;
+  padding-right: 8px;
+}

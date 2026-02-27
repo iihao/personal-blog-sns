@@ -1,48 +1,63 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const db = new sqlite3.Database('./blog.db');
 
-// Get all posts (admin)
-router.get('/', (req, res) => {
-  const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
+// Get all posts (public) with filters - public read, admin gets drafts too
+router.get('/', optionalAuth, (req, res) => {
+  const { page = 1, limit = 10, search = '', status = 'published', category = '', tag = '' } = req.query;
+  const isAdmin = req.user && req.user.role === 'admin';
   const offset = (page - 1) * limit;
   
-  let query = 'SELECT * FROM posts';
-  let countQuery = 'SELECT COUNT(*) as total FROM posts';
+  let query = 'SELECT * FROM posts WHERE 1=1';
+  let countQuery = 'SELECT COUNT(*) as total FROM posts WHERE 1=1';
   const params = [];
   
-  // Add search condition
-  if (search) {
-    query += ' WHERE title LIKE ? OR content LIKE ? OR tags LIKE ?';
-    countQuery += ' WHERE title LIKE ? OR content LIKE ? OR tags LIKE ?';
-    const searchParam = `%${search}%`;
-    params.push(searchParam, searchParam, searchParam);
+  // For non-admins, only show published posts
+  if (!isAdmin) {
+    query += ' AND status = "published"';
+    countQuery += ' AND status = "published"';
   }
   
-  // Add status filter
-  if (status !== 'all') {
-    const statusCondition = status === 'published' ? 'published = 1' : 'published = 0';
-    if (search) {
-      query += ` AND ${statusCondition}`;
-      countQuery += ` AND ${statusCondition}`;
-    } else {
-      query += ` WHERE ${statusCondition}`;
-      countQuery += ` WHERE ${statusCondition}`;
-    }
+  // Search
+  if (search) {
+    query += ' AND (title LIKE ? OR content LIKE ? OR tags LIKE ? OR category LIKE ?)';
+    countQuery += ' AND (title LIKE ? OR content LIKE ? OR tags LIKE ? OR category LIKE ?)';
+    const searchParam = `%${search}%`;
+    params.push(searchParam, searchParam, searchParam, searchParam);
+  }
+  
+  // Status filter (admin only - can filter by draft/published)
+  if (isAdmin && status !== 'published' && status !== 'all') {
+    query += ' AND status = ?';
+    countQuery += ' AND status = ?';
+    params.push(status);
+  }
+  
+  // Category filter
+  if (category) {
+    query += ' AND category = ?';
+    countQuery += ' AND category = ?';
+    params.push(category);
+  }
+  
+  // Tag filter
+  if (tag) {
+    query += ' AND tags LIKE ?';
+    countQuery += ' AND tags LIKE ?';
+    params.push(`%${tag}%`);
   }
   
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
   
-  // Get total count
   db.get(countQuery, params.slice(0, -2), (err, countResult) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     
-    // Get posts
     db.all(query, params, (err, rows) => {
       if (err) {
         return res.status(500).json({ error: err.message });
@@ -61,119 +76,120 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get post statistics (must be before /:id route)
-router.get('/stats', (req, res) => {
-  db.get('SELECT COUNT(*) as total FROM posts', (err, totalResult) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    db.get('SELECT COUNT(*) as published FROM posts WHERE published = 1', (err, publishedResult) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      
-      db.get('SELECT COUNT(*) as drafts FROM posts WHERE published = 0', (err, draftResult) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-        
-        res.json({
-          total: totalResult.total,
-          published: publishedResult.published,
-          drafts: draftResult.drafts
-        });
-      });
+// Get post statistics - requires auth
+router.get('/stats', authenticateToken, (req, res) => {
+  const queries = [
+    'SELECT COUNT(*) as total FROM posts',
+    "SELECT COUNT(*) as published FROM posts WHERE status = 'published'",
+    "SELECT COUNT(*) as drafts FROM posts WHERE status = 'draft'"
+  ];
+  
+  Promise.all([
+    new Promise((resolve, reject) => db.get(queries[0], (err, row) => err ? reject(err) : resolve(row))),
+    new Promise((resolve, reject) => db.get(queries[1], (err, row) => err ? reject(err) : resolve(row))),
+    new Promise((resolve, reject) => db.get(queries[2], (err, row) => err ? reject(err) : resolve(row)))
+  ]).then(([total, published, drafts]) => {
+    res.json({
+      total: total.total,
+      published: published.published,
+      drafts: drafts.drafts
     });
+  }).catch(err => {
+    console.error('Stats query error:', err);
+    res.status(500).json({ error: err.message });
   });
 });
 
-// Get post by ID
-router.get('/:id', (req, res) => {
-  db.get('SELECT * FROM posts WHERE id = ?', [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
+// Get all categories - public read
+router.get('/categories', (req, res) => {
+  db.all("SELECT DISTINCT category, COUNT(*) as count FROM posts WHERE category != '' AND status = 'published' GROUP BY category ORDER BY count DESC", (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ categories: rows || [] });
+  });
+});
+
+// Get all tags - public read
+router.get('/tags', (req, res) => {
+  db.all("SELECT tags FROM posts WHERE status = 'published' AND tags != ''", (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    const tagMap = {};
+    rows.forEach(row => {
+      row.tags.split(',').forEach(tag => {
+        const trimmed = tag.trim();
+        if (trimmed) {
+          tagMap[trimmed] = (tagMap[trimmed] || 0) + 1;
+        }
+      });
+    });
+    
+    const tags = Object.entries(tagMap).map(([name, count]) => ({ name, count }));
+    tags.sort((a, b) => b.count - a.count);
+    
+    res.json({ tags });
+  });
+});
+
+// Get post by ID - public read (returns all posts including drafts for admins)
+router.get('/:id', optionalAuth, (req, res) => {
+  const isAdmin = req.user && req.user.role === 'admin';
+  const query = isAdmin 
+    ? 'SELECT * FROM posts WHERE id = ?'
+    : "SELECT * FROM posts WHERE id = ? AND status = 'published'";
+  
+  db.get(query, [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Post not found' });
     res.json({ post: row });
   });
 });
 
-// Create new post
-router.post('/', (req, res) => {
-  const { title, content, author, tags, category, published } = req.body;
+// Create new post - requires auth
+router.post('/', authenticateToken, (req, res) => {
+  const { title, content, author, tags, category, status } = req.body;
   
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content are required' });
   }
   
-  const stmt = db.prepare('INSERT INTO posts (title, content, author, tags, category, published) VALUES (?, ?, ?, ?, ?, ?)');
-  stmt.run(
-    title, 
-    content, 
-    author || 'Admin', 
-    tags || '', 
-    category || '', 
-    published !== undefined ? published : 0,
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ id: this.lastID, message: 'Post created successfully' });
-    }
-  );
+  const stmt = db.prepare('INSERT INTO posts (title, content, author, tags, category, status) VALUES (?, ?, ?, ?, ?, ?)');
+  stmt.run(title, content, author || req.user.username || 'Admin', tags || '', category || '', status || 'published', function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID, message: 'Post created successfully' });
+  });
   stmt.finalize();
 });
 
-// Update post
-router.put('/:id', (req, res) => {
-  const { title, content, author, tags, category, published } = req.body;
+// Update post - requires auth
+router.put('/:id', authenticateToken, (req, res) => {
+  const { title, content, author, tags, category, status } = req.body;
   
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content are required' });
   }
   
-  const stmt = db.prepare('UPDATE posts SET title = ?, content = ?, author = ?, tags = ?, category = ?, published = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-  stmt.run(
-    title, 
-    content, 
-    author || 'Admin', 
-    tags || '', 
-    category || '', 
-    published !== undefined ? published : 0,
-    req.params.id,
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Post not found' });
-      }
-      res.json({ message: 'Post updated successfully' });
-    }
-  );
+  const stmt = db.prepare('UPDATE posts SET title = ?, content = ?, author = ?, tags = ?, category = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+  stmt.run(title, content, author || req.user.username || 'Admin', tags || '', category || '', status || 'published', req.params.id, function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Post not found' });
+    res.json({ message: 'Post updated successfully' });
+  });
   stmt.finalize();
 });
 
-// Delete post
-router.delete('/:id', (req, res) => {
+// Delete post - requires auth
+router.delete('/:id', authenticateToken, (req, res) => {
   const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
   stmt.run(req.params.id, function(err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Post not found' });
     res.json({ message: 'Post deleted successfully' });
   });
   stmt.finalize();
 });
 
-// Batch delete posts
-router.delete('/batch', (req, res) => {
+// Batch delete posts - requires auth
+router.delete('/batch', authenticateToken, (req, res) => {
   const { ids } = req.body;
   
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -183,9 +199,7 @@ router.delete('/batch', (req, res) => {
   const placeholders = ids.map(() => '?').join(',');
   const stmt = db.prepare(`DELETE FROM posts WHERE id IN (${placeholders})`);
   stmt.run(ids, function(err) {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    if (err) return res.status(500).json({ error: err.message });
     res.json({ message: `${this.changes} posts deleted successfully` });
   });
   stmt.finalize();

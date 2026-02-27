@@ -59,6 +59,8 @@ export const useBlogStore = defineStore('blog', () => {
 export const usePostStore = defineStore('posts', () => {
   const posts = ref([])
   const currentPost = ref(null)
+  const categories = ref([])
+  const tags = ref([])
   const loading = ref(false)
   const error = ref(null)
   const pagination = ref({
@@ -69,14 +71,41 @@ export const usePostStore = defineStore('posts', () => {
   })
 
   const publishedPosts = computed(() => 
-    posts.value.filter(post => post.published)
+    posts.value.filter(post => post.published || post.status === 'published')
   )
 
-  async function fetchPosts(page = 1, limit = 20, search = '', status = 'all') {
+  // 获取分类列表
+  async function fetchCategories() {
+    try {
+      const data = await apiRequest('/posts/categories')
+      categories.value = data.categories || []
+      return data.categories
+    } catch (err) {
+      console.error('Error fetching categories:', err)
+      return []
+    }
+  }
+
+  // 获取标签列表
+  async function fetchTags() {
+    try {
+      const data = await apiRequest('/posts/tags')
+      tags.value = data.tags || []
+      return data.tags
+    } catch (err) {
+      console.error('Error fetching tags:', err)
+      return []
+    }
+  }
+
+  async function fetchPosts(page = 1, limit = 20, search = '', status = 'published', category = '') {
     loading.value = true
     error.value = null
     try {
       const params = new URLSearchParams({ page, limit, search, status })
+      if (category) {
+        params.append('category', category)
+      }
       const data = await apiRequest(`/posts?${params}`)
       posts.value = data.posts || []
       pagination.value = data.pagination || { page, limit, total: 0, pages: 0 }
@@ -138,12 +167,16 @@ export const usePostStore = defineStore('posts', () => {
   return {
     posts,
     currentPost,
+    categories,
+    tags,
     loading,
     error,
     pagination,
     publishedPosts,
     fetchPosts,
     fetchPost,
+    fetchCategories,
+    fetchTags,
     createPost,
     updatePost,
     deletePost,
@@ -308,10 +341,19 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = null
     try {
-      const data = await apiRequest('/auth/login', {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ username, password })
       })
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
+      
       setToken(data.token)
       user.value = data.user
       return data
@@ -323,10 +365,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function fetchUser() {
+    if (!token.value) return null
+    
+    try {
+      const response = await fetch(`${API_BASE}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      })
+      
+      if (!response.ok) {
+        setToken(null)
+        return null
+      }
+      
+      const data = await response.json()
+      user.value = data.user
+      return data.user
+    } catch (err) {
+      setToken(null)
+      return null
+    }
+  }
+
   async function logout() {
     try {
-      await apiRequest('/auth/logout', {
-        method: 'POST'
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
       })
     } catch (err) {
       console.error('Logout error:', err)
@@ -340,9 +409,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return false
     
     try {
-      const data = await apiRequest('/auth/me')
-      user.value = data.user
-      return true
+      const userData = await fetchUser()
+      return !!userData
     } catch (err) {
       setToken(null)
       return false
@@ -357,6 +425,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     login,
     logout,
+    fetchUser,
     checkAuth,
     setToken
   }

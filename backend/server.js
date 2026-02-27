@@ -19,7 +19,12 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    email TEXT,
+    avatar TEXT,
+    bio TEXT,
+    role TEXT DEFAULT 'admin',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
   // Posts table
@@ -30,9 +35,10 @@ db.serialize(() => {
     author TEXT DEFAULT 'Admin',
     tags TEXT,
     category TEXT,
-    published BOOLEAN DEFAULT 0,
+    status TEXT DEFAULT 'published',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    published_at DATETIME
   )`);
 
   // Media table
@@ -40,10 +46,12 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename TEXT NOT NULL,
     original_name TEXT NOT NULL,
-    mime_type TEXT NOT NULL,
-    size INTEGER NOT NULL,
-    url TEXT NOT NULL,
-    uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    file_path TEXT NOT NULL,
+    file_size INTEGER,
+    mime_type TEXT,
+    uploaded_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id)
   )`);
 
   // Comments table
@@ -53,36 +61,42 @@ db.serialize(() => {
     author_name TEXT NOT NULL,
     author_email TEXT,
     content TEXT NOT NULL,
-    approved BOOLEAN DEFAULT 0,
+    status TEXT DEFAULT 'approved',
+    parent_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (parent_id) REFERENCES comments(id)
   )`);
 
-  // Config table
-  db.run(`CREATE TABLE IF NOT EXISTS config (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    blog_title TEXT DEFAULT 'My Blog',
-    blog_description TEXT DEFAULT 'A personal blog',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  // Settings table (replaces config)
+  db.run(`CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT UNIQUE NOT NULL,
+    value TEXT,
+    description TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
-  // Insert default admin user if not exists
+  // Insert default admin user if not exists (password: admin123)
   db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
     if (row.count === 0) {
-      // Simple password hash for demo (in production, use proper hashing)
-      const stmt = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
-      stmt.run('admin', '21232f297a57a5a743894a0e4a801fc3'); // MD5 of 'admin'
+      const bcrypt = require('bcryptjs');
+      const hash = bcrypt.hashSync('admin123', 10);
+      const stmt = db.prepare('INSERT INTO users (username, password_hash, email, role) VALUES (?, ?, ?, ?)');
+      stmt.run('admin', hash, 'admin@sqlboy.top', 'admin');
       stmt.finalize();
-      console.log('Default admin user created: username=admin, password=admin');
+      console.log('Default admin user created: username=admin, password=admin123');
     }
   });
 
-  // Insert default config if not exists
-  db.get('SELECT COUNT(*) as count FROM config', (err, row) => {
-    if (row.count === 0) {
-      const stmt = db.prepare('INSERT INTO config (blog_title, blog_description) VALUES (?, ?)');
-      stmt.run('blog.sqlboy.top', '一个现代化的个人博客平台');
+  // Insert default settings if not exists
+  db.get('SELECT COUNT(*) as count FROM settings WHERE key = "site_title"', (err, row) => {
+    if (!row || row.count === 0) {
+      const stmt = db.prepare('INSERT OR IGNORE INTO settings (key, value, description) VALUES (?, ?, ?)');
+      stmt.run('site_title', 'blog.sqlboy.top', '博客标题');
+      stmt.run('site_description', '一个现代化的个人博客平台', '博客描述');
+      stmt.run('admin_email', 'admin@sqlboy.top', '管理员邮箱');
       stmt.finalize();
     }
   });
@@ -112,43 +126,63 @@ const commentsRoutes = require('./routes/comments');
 const configRoutes = require('./routes/config');
 
 app.use('/api/auth', authRoutes);
-app.use('/api/posts', postsRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/config', configRoutes);
 
-// Public routes
+// Admin posts endpoints (with auth) - MUST be before public/:id route
+app.use('/api/posts', postsRoutes);
+
+// Public posts endpoints (no auth required)
 app.get('/api/posts', (req, res) => {
-  db.all('SELECT * FROM posts WHERE published = 1 ORDER BY created_at DESC', (err, rows) => {
+  db.all("SELECT * FROM posts WHERE status = 'published' ORDER BY created_at DESC", (err, rows) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      return res.status(500).json({ error: err.message });
     }
-    res.json({ posts: rows });
+    res.json({ posts: rows || [] });
   });
 });
 
 app.get('/api/posts/:id', (req, res) => {
-  db.get('SELECT * FROM posts WHERE id = ? AND published = 1', [req.params.id], (err, row) => {
+  db.get("SELECT * FROM posts WHERE id = ? AND status = 'published'", [req.params.id], (err, row) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      return res.status(500).json({ error: err.message });
     }
     if (!row) {
-      res.status(404).json({ error: 'Post not found' });
-      return;
+      return res.status(404).json({ error: 'Post not found' });
     }
     res.json({ post: row });
   });
 });
 
+// Public config endpoint (no auth required)
 app.get('/api/config/public', (req, res) => {
-  db.get('SELECT blog_title, blog_description FROM config WHERE id = 1', (err, row) => {
+  db.all('SELECT * FROM settings', (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(row || { blog_title: 'My Blog', blog_description: 'A personal blog' });
+    const config = {};
+    (rows || []).forEach(row => {
+      config[row.key] = row.value;
+    });
+    res.json({ 
+      blog_title: config.site_title || 'My Blog',
+      blog_description: config.site_description || 'A personal blog'
+    });
+  });
+});
+
+// Article detail page
+app.get('/post/:id', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'post.html');
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading file:', err);
+      return res.status(500).send('Error loading page');
+    }
+    res.setHeader('Content-Type', 'text/html');
+    res.send(data);
   });
 });
 

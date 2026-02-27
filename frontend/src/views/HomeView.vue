@@ -1,136 +1,147 @@
 <template>
-  <div class="home-container">
-    <!-- Header -->
-    <header class="site-header">
-      <div class="header-content">
-        <h1 class="site-title">{{ blogConfig.blog_title }}</h1>
-        <p class="site-description">{{ blogConfig.blog_description }}</p>
-        <!-- 主题切换按钮 -->
-        <div class="theme-toggle-container">
-          <ThemeToggle />
+  <div class="home-wrapper">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container-custom">
+        <div class="hero-content animate-fade-in">
+          <h1 class="hero-title">{{ blogConfig.blog_title || '我的博客' }}</h1>
+          <p class="hero-description">{{ blogConfig.blog_description || '记录技术，分享生活' }}</p>
         </div>
       </div>
-    </header>
+    </section>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="container-custom py-8">
       <!-- Search & Filter Bar -->
       <div class="filter-bar">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
+        <div class="search-wrapper">
+          <i class="fas fa-search search-icon"></i>
           <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="搜索文章..." 
+            v-model="searchQuery"
             @input="debouncedSearch"
+            type="text"
+            placeholder="搜索文章..."
             class="search-input"
+            aria-label="搜索文章"
           />
         </div>
-        <div class="filter-group">
-          <select v-model="selectedCategory" @change="filterPosts" class="filter-select">
+        <div class="filter-wrapper">
+          <i class="fas fa-filter filter-icon"></i>
+          <select v-model="selectedCategory" @change="filterPosts" class="filter-select" aria-label="选择分类">
             <option value="">全部分类</option>
             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
           </select>
         </div>
       </div>
 
-      <div class="timeline">
+      <!-- Content Area -->
+      <div class="content-area">
         <!-- Loading State -->
-        <div v-if="loading" class="loading-state">
+        <div v-if="loading" class="state-container">
           <div class="loading-spinner"></div>
-          <p>正在加载文章...</p>
+          <p class="state-text">正在加载文章...</p>
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="posts.length === 0" class="empty-state">
-          <div class="empty-icon">📝</div>
-          <h2>暂无文章</h2>
-          <p>博主正在努力创作中...</p>
+        <div v-else-if="posts.length === 0" class="state-container">
+          <div class="empty-illustration">📝</div>
+          <h2 class="state-title">暂无文章</h2>
+          <p class="state-description">博主正在努力创作中，敬请期待...</p>
         </div>
 
-        <!-- Timeline Posts -->
-        <div v-else class="timeline-posts">
-          <div v-for="(post, index) in posts" :key="post.id" class="timeline-item">
-            <div class="timeline-marker">
-              <div class="marker-dot"></div>
-              <div class="marker-line"></div>
-            </div>
-            
-            <article class="timeline-card" :style="{ animationDelay: `${index * 0.1}s` }">
-              <div class="card-date">
+        <!-- Posts List -->
+        <div v-else class="posts-grid">
+          <article 
+            v-for="(post, index) in posts" 
+            :key="post.id" 
+            class="post-card card"
+            :style="{ animationDelay: `${Math.min(index * 0.08, 0.4)}s` }"
+          >
+            <div class="post-card-header">
+              <div class="post-date-badge">
                 <span class="date-day">{{ formatDay(post.created_at) }}</span>
                 <span class="date-month">{{ formatMonth(post.created_at) }}</span>
-                <span class="date-year">{{ formatYear(post.created_at) }}</span>
               </div>
-              
-              <div class="card-content">
-                <div class="card-category" v-if="post.category">
-                  <i class="fas fa-folder"></i> {{ post.category }}
-                </div>
-                <h2 class="card-title">{{ post.title }}</h2>
-                
-                <div class="card-meta">
-                  <span class="meta-author">
-                    <i class="fas fa-user"></i> {{ post.author || 'Admin' }}
-                  </span>
-                  <span class="meta-date">
-                    <i class="fas fa-calendar"></i> {{ formatDate(post.created_at) }}
-                  </span>
-                </div>
-                
-                <div class="card-tags" v-if="post.tags">
-                  <span v-for="tag in post.tags.split(',').slice(0, 3)" :key="tag" class="tag">
-                    #{{ tag.trim() }}
-                  </span>
-                </div>
-                
-                <div class="card-excerpt" v-html="stripHtml(post.content).substring(0, 200) + '...'"></div>
-                
-                <div class="card-footer">
-                  <a :href="`/post/${post.id}`" class="read-more">
-                    阅读全文 <i class="fas fa-arrow-right"></i>
-                  </a>
-                </div>
+              <span v-if="post.category" class="post-category">
+                <i class="fas fa-folder"></i> {{ post.category }}
+              </span>
+            </div>
+
+            <div class="post-card-body">
+              <h2 class="post-title">
+                <router-link :to="`/post/${post.id}`" class="title-link">
+                  {{ post.title }}
+                </router-link>
+              </h2>
+
+              <div class="post-meta">
+                <span class="meta-item">
+                  <i class="fas fa-user"></i>
+                  {{ post.author || 'Admin' }}
+                </span>
+                <span class="meta-item">
+                  <i class="fas fa-calendar"></i>
+                  {{ formatDate(post.created_at) }}
+                </span>
               </div>
-            </article>
-          </div>
+
+              <div class="post-tags" v-if="post.tags">
+                <span 
+                  v-for="tag in post.tags.split(',').slice(0, 3)" 
+                  :key="tag" 
+                  class="tag"
+                >
+                  #{{ tag.trim() }}
+                </span>
+              </div>
+
+              <p class="post-excerpt" v-html="stripHtml(post.content).substring(0, 180) + '...'"></p>
+            </div>
+
+            <div class="post-card-footer">
+              <router-link :to="`/post/${post.id}`" class="read-more-link">
+                阅读全文
+                <i class="fas fa-arrow-right"></i>
+              </router-link>
+            </div>
+          </article>
         </div>
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination.pages > 1" class="pagination">
+      <div v-if="pagination.pages > 1" class="pagination-container">
         <button 
           :disabled="pagination.page <= 1" 
           @click="changePage(pagination.page - 1)"
-          class="page-btn"
+          class="pagination-btn btn-secondary"
+          aria-label="上一页"
         >
-          <i class="fas fa-chevron-left"></i> 上一页
+          <i class="fas fa-chevron-left"></i>
+          <span class="hide-mobile">上一页</span>
         </button>
         
-        <span class="page-info">
-          第 {{ pagination.page }} / {{ pagination.pages }} 页
+        <span class="pagination-info">
+          {{ pagination.page }} / {{ pagination.pages }}
         </span>
         
         <button 
           :disabled="pagination.page >= pagination.pages" 
           @click="changePage(pagination.page + 1)"
-          class="page-btn"
+          class="pagination-btn btn-secondary"
+          aria-label="下一页"
         >
-          下一页 <i class="fas fa-chevron-right"></i>
+          <span class="hide-mobile">下一页</span>
+          <i class="fas fa-chevron-right"></i>
         </button>
       </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="site-footer">
-      <p>© {{ new Date().getFullYear() }} {{ blogConfig.blog_title }}. Powered by Vue3 + Express</p>
-    </footer>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { usePostStore, useBlogStore } from '../store'
+import SearchBar from '../components/SearchBar.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
 
 const postStore = usePostStore()
@@ -148,8 +159,17 @@ let searchTimer = null
 
 onMounted(async () => {
   await blogStore.fetchConfig()
-  await postStore.fetchPosts(1, 20)
-  extractCategories()
+  // 从 API 获取分类列表
+  const apiCategories = await postStore.fetchCategories()
+  if (apiCategories && apiCategories.length > 0) {
+    // API 返回的是对象数组 {category, count}，转换为字符串数组
+    categories.value = apiCategories.map(c => c.category).filter(Boolean)
+  }
+  await postStore.fetchPosts(1, 20, '', 'published', '')
+  // 如果 API 分类为空，从文章提取作为备用
+  if (categories.value.length === 0) {
+    extractCategories()
+  }
 })
 
 const extractCategories = () => {
@@ -166,13 +186,16 @@ const debouncedSearch = () => {
 
 const filterPosts = async () => {
   const status = 'published'
-  await postStore.fetchPosts(1, 20, searchQuery.value, status)
-  extractCategories()
+  await postStore.fetchPosts(1, 20, searchQuery.value, status, selectedCategory.value)
+  // 如果分类列表为空，从文章提取
+  if (categories.value.length === 0) {
+    extractCategories()
+  }
 }
 
 const changePage = async (page) => {
   const status = 'published'
-  await postStore.fetchPosts(page, 20, searchQuery.value, status)
+  await postStore.fetchPosts(page, 20, searchQuery.value, status, selectedCategory.value)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -182,7 +205,7 @@ const formatDay = (dateString) => {
 }
 
 const formatMonth = (dateString) => {
-  const months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+  const months = ['1 月', '2 月', '3 月', '4 月', '5 月', '6 月', '7 月', '8 月', '9 月', '10 月', '11 月', '12 月']
   const date = new Date(dateString)
   return months[date.getMonth()]
 }
@@ -209,403 +232,276 @@ const stripHtml = (html) => {
 </script>
 
 <style scoped>
-.home-container {
+/* ===== Hero Section ===== */
+.home-wrapper {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Header */
-.site-header {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 60px 20px;
+.hero-section {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+  padding: 80px 0 60px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+:global(.dark) .hero-section {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+}
+
+.hero-content {
   text-align: center;
-}
-
-.header-content {
-  max-width: 800px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
-.site-title {
-  font-size: 48px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 12px;
-  letter-spacing: -1px;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+  animation: slide-up 0.6s ease-out;
 }
 
-.site-description {
-  font-size: 18px;
-  color: #666;
+.hero-description {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  color: var(--text-secondary);
   font-weight: 400;
+  animation: slide-up 0.6s ease-out 0.1s backwards;
 }
 
-.theme-toggle-container {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-}
-
-/* Filter Bar */
+/* ===== Filter Bar ===== */
 .filter-bar {
-  max-width: 900px;
-  margin: 40px auto 20px;
-  padding: 0 20px;
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  @apply flex flex-col sm:flex-row gap-4 mb-8;
 }
 
-.search-box {
-  flex: 1;
-  min-width: 200px;
-  position: relative;
+.search-wrapper, .filter-wrapper {
+  @apply relative flex-1;
 }
 
-.search-box i {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
+.search-icon, .filter-icon {
+  @apply absolute left-4 top-1/2 -translate-y-1/2;
+  color: var(--text-tertiary);
+  pointer-events: none;
 }
 
-.search-input {
-  width: 100%;
-  padding: 12px 16px 12px 44px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  font-size: 15px;
-  background: rgba(255, 255, 255, 0.9);
-  transition: all 0.3s ease;
+.search-input, .filter-select {
+  @apply w-full pl-12 pr-4 py-3 rounded-xl;
+  @apply transition-all duration-200;
+  background: var(--input-bg);
+  border: 2px solid var(--input-border);
+  color: var(--text-primary);
+  font-size: 1rem;
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.filter-group {
-  min-width: 150px;
+.search-input:focus, .filter-select:focus {
+  @apply outline-none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
 }
 
 .filter-select {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  font-size: 15px;
-  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  transition: all 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a3a3a3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 44px;
 }
 
-.filter-select:focus {
-  outline: none;
-  border-color: #667eea;
+/* ===== Content Area ===== */
+.content-area {
+  min-height: 400px;
 }
 
-/* Main Content */
-.main-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
+.state-container {
+  @apply flex flex-col items-center justify-center;
+  @apply py-20;
+  text-align: center;
 }
 
-/* Timeline */
-.timeline {
-  position: relative;
-  padding-left: 60px;
+.empty-illustration {
+  font-size: 4rem;
+  margin-bottom: 24px;
+  opacity: 0.5;
 }
 
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 20px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, #667eea, #764ba2);
+.state-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
-.timeline-item {
-  position: relative;
-  margin-bottom: 40px;
+.state-description {
+  color: var(--text-secondary);
 }
 
-.timeline-marker {
-  position: absolute;
-  left: -40px;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ===== Posts Grid ===== */
+.posts-grid {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
 }
 
-.marker-dot {
-  width: 16px;
-  height: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 50%;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-  z-index: 1;
+@media (max-width: 640px) {
+  .posts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.marker-line {
-  flex: 1;
-  width: 2px;
-  background: rgba(102, 126, 234, 0.3);
-  min-height: 100%;
+/* ===== Post Card ===== */
+.post-card {
+  @apply flex flex-col;
+  animation: slide-up 0.5s ease-out backwards;
+  will-change: transform, box-shadow;
 }
 
-.timeline-item:last-child .marker-line {
-  display: none;
-}
-
-/* Timeline Card */
-.timeline-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  animation: slideIn 0.5s ease-out forwards;
-  opacity: 0;
-}
-
-@keyframes slideIn {
+@keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 
-.timeline-card:hover {
+.post-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2);
 }
 
-.card-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+.post-card-header {
+  @apply flex items-center justify-between;
+  @apply px-6 pt-6 pb-4;
+}
+
+.post-date-badge {
+  @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: white;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 16px;
 }
 
-.card-category {
-  display: inline-block;
-  color: #667eea;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 8px;
+.post-category {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--accent-primary);
+  transition: all 0.2s;
 }
 
-.card-title {
-  font-size: 24px;
+.post-category:hover {
+  background: rgba(124, 58, 237, 0.15);
+}
+
+.post-card-body {
+  @apply flex-1 px-6 pb-4;
+}
+
+.post-title {
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #1d1d1f;
-  margin: 12px 0;
-  line-height: 1.3;
-}
-
-.card-meta {
-  display: flex;
-  gap: 16px;
-  color: #86868b;
-  font-size: 14px;
+  line-height: 1.4;
   margin-bottom: 12px;
 }
 
-.card-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.tag {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.card-excerpt {
-  color: #3c3c43;
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.read-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #667eea;
+.title-link {
+  color: var(--text-primary);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 15px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: rgba(102, 126, 234, 0.1);
-  transition: all 0.3s ease;
+  transition: color 0.2s;
 }
 
-.read-more:hover {
-  background: rgba(102, 126, 234, 0.2);
-  transform: translateX(4px);
+.title-link:hover {
+  color: var(--accent-primary);
 }
 
-/* Loading & Empty States */
-.loading-state, .empty-state {
-  text-align: center;
-  padding: 60px 20px;
+.post-meta {
+  @apply flex items-center gap-4 mb-4;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(102, 126, 234, 0.2);
-  border-top-color: #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
+.meta-item {
+  @apply inline-flex items-center gap-1.5;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.post-tags {
+  @apply flex flex-wrap gap-2 mb-4;
 }
 
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 16px;
+.post-excerpt {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.empty-state h2 {
-  font-size: 24px;
-  color: #1d1d1f;
-  margin-bottom: 8px;
+.post-card-footer {
+  @apply px-6 pb-6 pt-4;
+  @apply border-t;
+  border-color: var(--border-color);
 }
 
-.empty-state p {
-  color: #86868b;
+.read-more-link {
+  @apply inline-flex items-center gap-2 font-semibold;
+  @apply transition-all duration-200;
+  color: var(--accent-primary);
+  text-decoration: none;
 }
 
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-top: 40px;
-  padding: 20px;
+.read-more-link:hover {
+  gap: 10px;
+  color: var(--accent-secondary);
 }
 
-.page-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #667eea;
-  cursor: pointer;
-  transition: all 0.3s ease;
+/* ===== Pagination ===== */
+.pagination-container {
+  @apply flex items-center justify-center gap-4;
+  @apply mt-12 py-8;
 }
 
-.page-btn:hover:not(:disabled) {
-  background: #667eea;
+.pagination-btn {
+  @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold;
+  @apply transition-all duration-200;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: white;
   transform: translateY(-2px);
 }
 
-.page-btn:disabled {
+.pagination-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.page-info {
-  color: #86868b;
-  font-size: 14px;
+.pagination-info {
+  color: var(--text-secondary);
   font-weight: 500;
-}
-
-/* Footer */
-.site-footer {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 40px 20px;
+  min-width: 80px;
   text-align: center;
-  color: #86868b;
-  font-size: 14px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .site-title {
-    font-size: 32px;
-  }
+/* ===== Dark Mode ===== */
+:global(.dark) .post-category {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--accent-primary);
+}
 
-  .timeline {
-    padding-left: 40px;
-  }
+:global(.dark) .post-card {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
 
-  .timeline::before {
-    left: 10px;
-  }
-
-  .timeline-marker {
-    left: -30px;
-  }
-
-  .timeline-card {
-    padding: 20px;
-  }
-
-  .card-title {
-    font-size: 20px;
-  }
-
-  .filter-bar {
-    flex-direction: column;
-  }
-
-  .search-box, .filter-group {
-    min-width: 100%;
-  }
-
-  .pagination {
-    flex-direction: column;
-  }
+:global(.dark) .post-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 </style>
