@@ -50,11 +50,32 @@ const headings = ref([])
 const isCollapsed = ref(false)
 const activeHeading = ref('')
 
-// 提取目录
+// 提取目录 - 从渲染后的 HTML 中提取
 const updateHeadings = () => {
-  if (props.content) {
-    headings.value = extractHeadings(props.content)
-  }
+  headings.value = []
+  
+  // 等待 DOM 渲染完成后提取
+  setTimeout(() => {
+    const article = document.querySelector('.post-content')
+    if (!article) return
+    
+    const headingElements = article.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    
+    headings.value = Array.from(headingElements).map((heading, index) => {
+      // 如果没有 ID，生成一个
+      if (!heading.id) {
+        heading.id = `heading-${index}`
+      }
+      
+      return {
+        id: heading.id,
+        text: heading.textContent.trim(),
+        level: parseInt(heading.tagName.charAt(1))
+      }
+    })
+    
+    console.log('目录更新:', headings.value.length, '个标题')
+  }, 100)
 }
 
 // 滚动到指定标题
@@ -113,16 +134,31 @@ onUnmounted(() => {
 
 <style scoped>
 .table-of-contents {
-  position: sticky;
-  top: 100px;
+  position: fixed;
+  top: 120px;
+  right: calc((100vw - 1200px) / 2 - 280px - 24px);
+  width: 260px;
+  max-height: calc(100vh - 160px);
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 16px;
-  margin: 20px 0;
-  max-width: 280px;
-  box-shadow: 0 2px 8px var(--shadow-color);
+  padding: 20px;
+  box-shadow: 0 2px 12px var(--shadow-color);
   transition: all 0.3s ease;
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* 当屏幕宽度小于 1400px 时，调整为相对定位 */
+@media (max-width: 1400px) {
+  .table-of-contents {
+    position: relative;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-height: none;
+    margin: 20px 0;
+  }
 }
 
 .toc-header {
@@ -166,15 +202,24 @@ onUnmounted(() => {
 }
 
 .toc-body {
-  max-height: 450px;
+  max-height: calc(100vh - 250px);
   overflow-y: auto;
+  overflow-x: hidden;
   transition: max-height 0.3s ease;
+  padding-right: 4px;
 }
 
 .toc-body.collapsed {
   max-height: 0;
   overflow: hidden;
   padding: 0;
+}
+
+/* 移动端隐藏目录 */
+@media (max-width: 1024px) {
+  .table-of-contents {
+    display: none;
+  }
 }
 
 .toc-list {

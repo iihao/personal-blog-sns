@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
+const auth = require('./middleware/auth');
 
 const app = express(); // 这行之前缺失了！
 const PORT = process.env.PORT || 3000;
@@ -108,6 +110,7 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync('./uploads')) {
@@ -116,16 +119,6 @@ if (!fs.existsSync('./uploads')) {
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/admin', express.static(path.join(__dirname, 'public')));
-
-// Admin routes - serve index.html for all admin paths
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/admin/users', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'users.html'));
-});
 
 // API Routes - Load route files
 const authRoutes = require('./routes/auth');
@@ -138,6 +131,60 @@ app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/posts', postsRoutes);
+
+// Admin routes - handle all admin paths manually for better control
+// Express 5.x compatible approach using middleware
+const adminPublicPath = path.join(__dirname, 'public');
+
+// Helper function to serve admin files
+function serveAdminFile(req, res) {
+  // Don't serve for API calls
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  
+  // Remove /admin prefix and leading slash
+  const relativePath = req.path.replace(/^\/admin\/?/, '');
+  
+  // For empty path or root, serve index.html
+  if (!relativePath || relativePath === '') {
+    return res.sendFile(path.join(adminPublicPath, 'index.html'));
+  }
+  
+  // For paths without extension, try .html file first, then index.html
+  if (!relativePath.includes('.')) {
+    const htmlFile = relativePath + '.html';
+    const htmlFullPath = path.join(adminPublicPath, htmlFile);
+    
+    if (fs.existsSync(htmlFullPath)) {
+      return res.sendFile(htmlFullPath);
+    }
+    // If .html file not found, serve index.html for Vue Router
+    return res.sendFile(path.join(adminPublicPath, 'index.html'));
+  }
+  
+  // For paths with extension, serve directly if exists
+  const fullPath = path.join(adminPublicPath, relativePath);
+  if (fs.existsSync(fullPath)) {
+    return res.sendFile(fullPath);
+  }
+  
+  res.status(404).json({ error: 'File not found' });
+}
+
+// Register routes for common admin paths
+app.get('/admin', serveAdminFile);
+app.get('/admin/dashboard', serveAdminFile);
+app.get('/admin/articles', serveAdminFile);
+app.get('/admin/comments', serveAdminFile);
+app.get('/admin/media', serveAdminFile);
+app.get('/admin/settings', serveAdminFile);
+app.get('/admin/users', serveAdminFile);
+app.get('/admin/editor', serveAdminFile);
+
+// Catch-all for any other admin paths (Vue Router)
+app.use('/admin', serveAdminFile);
 
 // Public posts endpoints (no auth required) - MUST be before postsRoutes
 app.get('/api/posts/stats', (req, res) => {
@@ -179,9 +226,6 @@ app.get('/api/posts/:id', (req, res) => {
     res.json({ post: row });
   });
 });
-
-// Admin posts endpoints
-app.use('/api/posts', postsRoutes);
 
 // Public config endpoint (no auth required)
 app.get('/api/config/public', (req, res) => {

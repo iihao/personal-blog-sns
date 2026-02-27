@@ -412,26 +412,37 @@ watch(() => route.params.id, (newId, oldId) => {
   margin: 0 auto;
   padding: 60px 24px;
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr;
   gap: 48px;
   align-items: start;
 }
 
-@media (max-width: 968px) {
+@media (min-width: 1400px) {
   .post-layout {
-    grid-template-columns: 1fr;
+    max-width: 1200px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .post-layout {
     padding: 40px 20px;
-    gap: 32px;
   }
 }
 
 .post-main {
   min-width: 0;
+  max-width: 100%;
 }
 
+/* 侧边栏在移动端隐藏，桌面端固定定位 */
 .post-sidebar {
-  position: sticky;
-  top: 100px;
+  display: none;
+}
+
+@media (min-width: 1025px) {
+  .post-sidebar {
+    display: block;
+  }
 }
 
 /* ===== 文章头部 ===== */
