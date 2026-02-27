@@ -52,53 +52,47 @@ const { isDark, toggleTheme } = useTheme()
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 1);
-  transform: rotate(15deg) scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--bg-tertiary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
 }
 
 .toggle-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f59e0b;
+  color: var(--accent-primary);
+  transition: color 0.3s ease;
+}
+
+:global(.dark) .toggle-icon {
+  color: #fbbf24;
 }
 
 .icon-sun, .icon-moon {
   width: 20px;
   height: 20px;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
+/* 切换动画 */
 .theme-toggle:hover .icon-sun,
 .theme-toggle:hover .icon-moon {
-  transform: scale(1.2);
-}
-
-/* 深色模式下的按钮样式 */
-:global(.dark) .theme-toggle {
-  background: rgba(31, 41, 55, 0.8);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-:global(.dark) .theme-toggle:hover {
-  background: rgba(31, 41, 55, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-:global(.dark) .toggle-icon {
-  color: #fbbf24;
+  transform: scale(1.15) rotate(15deg);
 }
 </style>

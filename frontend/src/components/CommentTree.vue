@@ -199,32 +199,30 @@ const handleCommentDeleted = (commentId) => {
   display: flex;
   gap: 16px;
   padding: 20px;
-  background: var(--bg-secondary, #f9f9f9);
-  border-radius: 12px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
   margin-bottom: 16px;
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
 }
 
 .comment-item.is-reply {
-  background: var(--bg-primary, #ffffff);
+  background: var(--bg-primary);
   padding: 16px;
-  margin-left: 20px;
-  border-left: 2px solid var(--border-color, #e5e7eb);
-}
-
-:global(.dark) .comment-item.is-reply {
-  background: var(--bg-secondary, #1e293b);
+  margin-left: 24px;
+  border-left: 3px solid var(--accent-primary);
 }
 
 .comment-item:hover {
   transform: translateX(4px);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .comment-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: white;
   display: flex;
   align-items: center;
@@ -232,6 +230,7 @@ const handleCommentDeleted = (commentId) => {
   font-size: 1.25rem;
   font-weight: 700;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
 }
 
 .comment-body {
@@ -250,13 +249,13 @@ const handleCommentDeleted = (commentId) => {
 
 .comment-author {
   font-weight: 600;
-  color: var(--text-primary, #111827);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
 .comment-date {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #6b7280);
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
 }
 
 .comment-content {
@@ -308,13 +307,15 @@ const handleCommentDeleted = (commentId) => {
 .reply-form {
   margin-top: 16px;
   padding: 16px;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  animation: slide-down 0.3s ease-out;
 }
 
-:global(.dark) .reply-form {
-  background: var(--bg-secondary, #1e293b);
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .form-group {
@@ -323,17 +324,20 @@ const handleCommentDeleted = (commentId) => {
 
 .form-input, .form-textarea {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 2px solid var(--input-border);
+  border-radius: 10px;
   font-size: 0.95rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
   box-sizing: border-box;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-input:focus, .form-textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
 }
 
 .form-textarea {
@@ -347,20 +351,21 @@ const handleCommentDeleted = (commentId) => {
 }
 
 .submit-btn {
-  padding: 8px 20px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
 }
 
 .submit-btn:disabled {
@@ -369,18 +374,20 @@ const handleCommentDeleted = (commentId) => {
 }
 
 .cancel-btn {
-  padding: 8px 20px;
-  background: var(--bg-tertiary, #f3f4f6);
-  color: var(--text-secondary, #6b7280);
-  border: none;
-  border-radius: 8px;
+  padding: 10px 24px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
   font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .cancel-btn:hover {
-  background: var(--border-color, #e5e7eb);
+  background: var(--border-color);
+  color: var(--text-primary);
 }
 
 /* 嵌套回复 */

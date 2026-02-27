@@ -35,54 +35,55 @@ watch(() => props.content, () => {
 
 <style scoped>
 .markdown-preview {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   line-height: 1.8;
-  color: #515154;
+  color: var(--text-primary);
 }
 
 /* 标题 */
 .markdown-preview :deep(h1) {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1d1d1f;
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  font-weight: 800;
+  color: var(--text-primary);
   margin: 1.5em 0 1em;
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .markdown-preview :deep(h2) {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1d1d1f;
+  font-size: clamp(1.75rem, 4vw, 2rem);
+  font-weight: 700;
+  color: var(--text-primary);
   margin: 1.5em 0 1em;
   padding-bottom: 0.5em;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .markdown-preview :deep(h3) {
-  font-size: 1.75rem;
+  font-size: clamp(1.5rem, 3vw, 1.75rem);
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--text-primary);
   margin: 1.5em 0 1em;
 }
 
 .markdown-preview :deep(h4) {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--text-primary);
   margin: 1.5em 0 1em;
 }
 
 .markdown-preview :deep(h5) {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--text-primary);
   margin: 1.5em 0 1em;
 }
 
 .markdown-preview :deep(h6) {
   font-size: 1rem;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--text-primary);
   margin: 1.5em 0 1em;
 }
 
@@ -93,20 +94,22 @@ watch(() => props.content, () => {
 
 /* 链接 */
 .markdown-preview :deep(a) {
-  color: #007aff;
+  color: var(--accent-primary);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .markdown-preview :deep(a:hover) {
-  border-bottom-color: #007aff;
+  border-bottom-color: var(--accent-primary);
+  opacity: 0.8;
 }
 
 /* 强调 */
 .markdown-preview :deep(strong) {
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--text-primary);
 }
 
 .markdown-preview :deep(em) {
@@ -115,27 +118,29 @@ watch(() => props.content, () => {
 
 .markdown-preview :deep(del) {
   text-decoration: line-through;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 /* 代码 */
 .markdown-preview :deep(code) {
-  background: #f5f5f7;
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-  font-size: 0.9em;
-  color: #e07a00;
+  background: var(--bg-tertiary);
+  padding: 0.2em 0.5em;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.875em;
+  color: var(--accent-primary);
+  border: 1px solid var(--border-color);
 }
 
 .markdown-preview :deep(pre) {
   background: #1e1e2e;
   color: #e0e0e0;
   padding: 1.5em;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow-x: auto;
   margin: 1.5em 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 1px solid var(--border-color);
 }
 
 .markdown-preview :deep(pre code) {
@@ -144,16 +149,17 @@ watch(() => props.content, () => {
   color: inherit;
   font-size: 0.875rem;
   line-height: 1.6;
+  border: none;
 }
 
 /* 引用 */
 .markdown-preview :deep(blockquote) {
-  border-left: 4px solid #007aff;
+  border-left: 4px solid var(--accent-primary);
   margin: 1.5em 0;
   padding: 1em 1.5em;
-  background: rgba(0, 122, 255, 0.08);
-  border-radius: 0 8px 8px 0;
-  color: #515154;
+  background: rgba(124, 58, 237, 0.08);
+  border-radius: 0 12px 12px 0;
+  color: var(--text-secondary);
 }
 
 .markdown-preview :deep(blockquote p) {
@@ -188,16 +194,21 @@ watch(() => props.content, () => {
 .markdown-preview :deep(img) {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 12px;
   margin: 1.5em 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--shadow-color);
   display: block;
+  transition: transform 0.3s ease;
+}
+
+.markdown-preview :deep(img:hover) {
+  transform: scale(1.02);
 }
 
 /* 水平线 */
 .markdown-preview :deep(hr) {
   border: none;
-  border-top: 2px solid #e0e0e0;
+  border-top: 2px solid var(--border-color);
   margin: 2em 0;
 }
 
@@ -206,22 +217,45 @@ watch(() => props.content, () => {
   width: 100%;
   border-collapse: collapse;
   margin: 1.5em 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .markdown-preview :deep(th),
 .markdown-preview :deep(td) {
-  border: 1px solid #e0e0e0;
-  padding: 0.75em;
+  border: 1px solid var(--border-color);
+  padding: 0.875em 1em;
   text-align: left;
 }
 
 .markdown-preview :deep(th) {
-  background: #f5f5f7;
+  background: var(--bg-tertiary);
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+}
+
+.markdown-preview :deep(td) {
+  color: var(--text-secondary);
 }
 
 .markdown-preview :deep(tr:nth-child(even)) {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(124, 58, 237, 0.03);
+}
+
+.markdown-preview :deep(tr:hover) {
+  background: rgba(124, 58, 237, 0.06);
+}
+
+/* 深色模式适配 */
+:global(.dark) .markdown-preview :deep(pre) {
+  background: #1a1a2e;
+}
+
+:global(.dark) .markdown-preview :deep(blockquote) {
+  background: rgba(124, 58, 237, 0.12);
 }
 </style>

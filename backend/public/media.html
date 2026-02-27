@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>媒体库 - 博客管理后台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/admin/admin-layout.css">
+    <script src="/admin/admin.js" defer></script>
     <style>
         :root {
             --primary: #007aff;
@@ -38,6 +40,11 @@
             padding: 24px;
         }
 
+        .header-nav {
+            display: flex;
+            gap: 12px;
+        }
+        
         .header {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -278,15 +285,75 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-images"></i> 媒体库</h1>
-            <a href="/admin/articles.html" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> 返回文章管理
-            </a>
-        </div>
+    <!-- 移动端菜单按钮 -->
+    <button class="menu-toggle" aria-label="切换菜单">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- 遮罩层 -->
+    <div class="sidebar-overlay"></div>
+    
+    <div class="dashboard-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-pen-fancy"></i>
+                </div>
+                <span class="logo-text">博客管理</span>
+            </div>
 
-        <div class="card">
+            <nav class="nav-section">
+                <div class="nav-section-title">内容管理</div>
+                <a href="/admin/" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>仪表盘</span>
+                </a>
+                <a href="/admin/articles.html" class="nav-item">
+                    <i class="fas fa-newspaper"></i>
+                    <span>文章管理</span>
+                </a>
+                <a href="/admin/media.html" class="nav-item active">
+                    <i class="fas fa-images"></i>
+                    <span>媒体库</span>
+                </a>
+                <a href="/admin/comments.html" class="nav-item">
+                    <i class="fas fa-comments"></i>
+                    <span>评论管理</span>
+                </a>
+            </nav>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">系统</div>
+                <a href="/admin/settings.html" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>系统设置</span>
+                </a>
+                <a href="/" class="nav-item" target="_blank">
+                    <i class="fas fa-external-link-alt"></i>
+                    <span>查看站点</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <div class="main-wrapper">
+            <div class="container">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-images"></i>
+                        媒体库
+                    </h1>
+                    <div class="header-actions">
+                        <a href="/admin/" class="btn btn-outline">
+                            <i class="fas fa-home"></i> 返回首页
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card">
             <!-- Upload Area -->
             <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
                 <div class="upload-icon">
@@ -549,5 +616,9 @@
             }
         });
     </script>
+                </div><!-- /.card -->
+            </div><!-- /.container -->
+        </div><!-- /.main-wrapper -->
+    </div><!-- /.dashboard-layout -->
 </body>
 </html>

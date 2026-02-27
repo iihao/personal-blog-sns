@@ -118,6 +118,15 @@ if (!fs.existsSync('./uploads')) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/admin', express.static(path.join(__dirname, 'public')));
 
+// Admin routes - serve index.html for all admin paths
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/admin/users', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'users.html'));
+});
+
 // API Routes - Load route files
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
@@ -130,12 +139,28 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/config', configRoutes);
 
-// Admin posts endpoints (with auth) - MUST be before public/:id route
-app.use('/api/posts', postsRoutes);
+// Public posts endpoints (no auth required) - MUST be before postsRoutes
+app.get('/api/posts/stats', (req, res) => {
+  db.all("SELECT COUNT(*) as total FROM posts", (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const total = rows[0]?.total || 0;
+    
+    db.all("SELECT COUNT(*) as count FROM posts WHERE status = 'published'", (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      const published = rows[0]?.count || 0;
+      
+      db.all("SELECT COUNT(*) as count FROM posts WHERE status = 'draft'", (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const drafts = rows[0]?.count || 0;
+        
+        res.json({ total, published, drafts });
+      });
+    });
+  });
+});
 
-// Public posts endpoints (no auth required)
 app.get('/api/posts', (req, res) => {
-  db.all("SELECT * FROM posts WHERE status = 'published' ORDER BY created_at DESC", (err, rows) => {
+  db.all("SELECT * FROM posts ORDER BY created_at DESC", (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -144,7 +169,7 @@ app.get('/api/posts', (req, res) => {
 });
 
 app.get('/api/posts/:id', (req, res) => {
-  db.get("SELECT * FROM posts WHERE id = ? AND status = 'published'", [req.params.id], (err, row) => {
+  db.get("SELECT * FROM posts WHERE id = ?", [req.params.id], (err, row) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -154,6 +179,9 @@ app.get('/api/posts/:id', (req, res) => {
     res.json({ post: row });
   });
 });
+
+// Admin posts endpoints
+app.use('/api/posts', postsRoutes);
 
 // Public config endpoint (no auth required)
 app.get('/api/config/public', (req, res) => {

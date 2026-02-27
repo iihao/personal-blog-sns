@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文章管理 - 博客管理后台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/admin/admin-layout.css">
-    <script src="/admin/admin.js" defer></script>
     <style>
         :root {
             --primary: #007aff;
@@ -33,26 +31,12 @@
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
         }
 
-        /* 覆盖 container 样式以适配侧边栏布局 */
         .container {
             max-width: 1400px;
-            margin: 0;
-            padding: 0;
-        }
-
-        .dashboard-layout {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .main-wrapper {
-            margin-left: 280px;
-            flex: 1;
-            padding: 40px;
-            min-height: 100vh;
+            margin: 0 auto;
+            padding: 24px;
         }
 
         .header {
@@ -372,62 +356,7 @@
     </style>
 </head>
 <body>
-    <!-- 移动端菜单按钮 -->
-    <button class="menu-toggle" aria-label="切换菜单">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
-    
-    <!-- 遮罩层 -->
-    <div class="sidebar-overlay"></div>
-    
-    <div class="dashboard-layout">
-        <!-- 侧边栏 -->
-        <aside class="sidebar">
-            <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-pen-fancy"></i>
-                </div>
-                <span class="logo-text">博客管理</span>
-            </div>
-
-            <nav class="nav-section">
-                <div class="nav-section-title">内容管理</div>
-                <a href="/admin/" class="nav-item">
-                    <i class="fas fa-home"></i>
-                    <span>仪表盘</span>
-                </a>
-                <a href="/admin/articles.html" class="nav-item active">
-                    <i class="fas fa-newspaper"></i>
-                    <span>文章管理</span>
-                </a>
-                <a href="/admin/media.html" class="nav-item">
-                    <i class="fas fa-images"></i>
-                    <span>媒体库</span>
-                </a>
-                <a href="/admin/comments.html" class="nav-item">
-                    <i class="fas fa-comments"></i>
-                    <span>评论管理</span>
-                </a>
-            </nav>
-
-            <nav class="nav-section">
-                <div class="nav-section-title">系统</div>
-                <a href="/admin/settings.html" class="nav-item">
-                    <i class="fas fa-cog"></i>
-                    <span>系统设置</span>
-                </a>
-                <a href="/" class="nav-item" target="_blank">
-                    <i class="fas fa-external-link-alt"></i>
-                    <span>查看站点</span>
-                </a>
-            </nav>
-        </aside>
-
-        <!-- 主内容区 -->
-        <div class="main-wrapper">
-            <div class="container">
+    <div class="container">
         <div class="header">
             <h1><i class="fas fa-newspaper"></i> 文章管理</h1>
             <div class="header-actions">
@@ -823,8 +752,5 @@
             }
         });
     </script>
-            </div><!-- /.container -->
-        </div><!-- /.main-wrapper -->
-    </div><!-- /.dashboard-layout -->
 </body>
 </html>

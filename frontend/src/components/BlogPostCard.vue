@@ -73,22 +73,19 @@ const excerpt = computed(() => {
 <style scoped>
 .blog-post-card {
   position: relative;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
   padding: 24px;
   transition: all 0.3s ease;
   overflow: hidden;
-}
-
-:global(.dark) .blog-post-card {
-  background: var(--bg-secondary, #1e293b);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .blog-post-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  box-shadow: 0 12px 24px var(--shadow-color);
+  border-color: var(--accent-primary);
 }
 
 .card-link {
@@ -102,22 +99,28 @@ const excerpt = computed(() => {
 }
 
 .card-title {
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
   font-weight: 700;
-  color: var(--text-primary, #111827);
+  color: var(--text-primary);
   margin: 0 0 12px;
   line-height: 1.3;
+  transition: color 0.2s ease;
+}
+
+.blog-post-card:hover .card-title {
+  color: var(--accent-primary);
 }
 
 .card-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  font-size: 0.875rem;
-  color: var(--text-secondary, #6b7280);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 .card-meta i {
+  color: var(--accent-primary);
   margin-right: 4px;
 }
 
@@ -133,11 +136,16 @@ const excerpt = computed(() => {
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--accent-primary);
   border-radius: 16px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.badge-category:hover {
+  background: rgba(124, 58, 237, 0.15);
 }
 
 .badge-tags {
@@ -147,21 +155,28 @@ const excerpt = computed(() => {
 
 .badge-tag {
   padding: 4px 10px;
-  background: var(--bg-tertiary, #f3f4f6);
-  color: var(--text-secondary, #6b7280);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   border-radius: 12px;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-:global(.dark) .badge-tag {
-  background: var(--bg-tertiary, #334155);
+.badge-tag:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--accent-primary);
 }
 
 .card-excerpt {
-  color: var(--text-secondary, #3c3c43);
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 20px;
   font-size: 0.95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-footer {
@@ -173,10 +188,10 @@ const excerpt = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #667eea;
+  color: var(--accent-primary);
   font-weight: 600;
   font-size: 0.95rem;
-  transition: gap 0.2s;
+  transition: gap 0.2s ease;
 }
 
 .blog-post-card:hover .read-more {
