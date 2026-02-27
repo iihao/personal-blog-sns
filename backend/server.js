@@ -133,58 +133,66 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/posts', postsRoutes);
 
-// Admin routes - handle all admin paths manually for better control
-// Express 5.x compatible approach using middleware
+// Admin routes - Express 5.x compatible (direct file serving)
 const adminPublicPath = path.join(__dirname, 'public');
 
-// Helper function to serve admin files
-function serveAdminFile(req, res) {
-  // Don't serve for API calls
+// Helper to serve admin HTML files directly
+function serveAdminHTML(req, res) {
+  // Skip API routes
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Not found' });
   }
   
-  // Remove /admin prefix and leading slash
   const relativePath = req.path.replace(/^\/admin\/?/, '');
+  console.log('[Admin Route] path:', req.path, 'relative:', relativePath);
   
-  // For empty path or root, serve index.html
+  // Root or empty path -> index.html
   if (!relativePath || relativePath === '') {
-    return res.sendFile(path.join(adminPublicPath, 'index.html'));
+    const content = fs.readFileSync(path.join(adminPublicPath, 'index.html'), 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(content);
   }
   
-  // For paths without extension, try .html file first, then index.html
+  // No extension -> try .html file, fallback to index.html
   if (!relativePath.includes('.')) {
-    const htmlFile = relativePath + '.html';
-    const htmlFullPath = path.join(adminPublicPath, htmlFile);
-    
-    if (fs.existsSync(htmlFullPath)) {
-      return res.sendFile(htmlFullPath);
+    const htmlPath = path.join(adminPublicPath, relativePath + '.html');
+    if (fs.existsSync(htmlPath)) {
+      const content = fs.readFileSync(htmlPath, 'utf8');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(content);
     }
-    // If .html file not found, serve index.html for Vue Router
-    return res.sendFile(path.join(adminPublicPath, 'index.html'));
+    const content = fs.readFileSync(path.join(adminPublicPath, 'index.html'), 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(content);
   }
   
-  // For paths with extension, serve directly if exists
+  // With extension -> serve directly or 404
   const fullPath = path.join(adminPublicPath, relativePath);
   if (fs.existsSync(fullPath)) {
+    const ext = path.extname(fullPath).toLowerCase();
+    const mimeTypes = {
+      '.html': 'text/html',
+      '.css': 'text/css',
+      '.js': 'application/javascript',
+      '.json': 'application/json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon'
+    };
+    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
     return res.sendFile(fullPath);
   }
   
-  res.status(404).json({ error: 'File not found' });
+  res.status(404).json({ error: 'Not found' });
 }
 
-// Register routes for common admin paths
-app.get('/admin', serveAdminFile);
-app.get('/admin/dashboard', serveAdminFile);
-app.get('/admin/articles', serveAdminFile);
-app.get('/admin/comments', serveAdminFile);
-app.get('/admin/media', serveAdminFile);
-app.get('/admin/settings', serveAdminFile);
-app.get('/admin/users', serveAdminFile);
-app.get('/admin/editor', serveAdminFile);
-
-// Catch-all for any other admin paths (Vue Router)
-app.use('/admin', serveAdminFile);
+// All admin routes - Express 5.x compatible (no optional params)
+app.all('/admin', serveAdminHTML);
+app.all('/admin/:page', serveAdminHTML);
+app.all('/admin/:page/:subpage', serveAdminHTML);
+app.all('/admin/:page/:subpage/:third', serveAdminHTML);
 
 // Public posts endpoints (no auth required) - MUST be before postsRoutes
 app.get('/api/posts/stats', (req, res) => {
