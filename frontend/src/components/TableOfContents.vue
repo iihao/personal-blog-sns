@@ -135,29 +135,33 @@ onUnmounted(() => {
 <style scoped>
 .table-of-contents {
   position: fixed;
-  top: 120px;
-  right: calc((100vw - 1200px) / 2 - 280px - 24px);
-  width: 260px;
-  max-height: calc(100vh - 160px);
+  top: 100px;
+  right: max(24px, calc((100vw - 1200px) / 2 - 280px));
+  width: 240px;
+  max-height: calc(100vh - 140px);
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 16px;
   box-shadow: 0 2px 12px var(--shadow-color);
   transition: all 0.3s ease;
   z-index: 100;
   overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-/* 当屏幕宽度小于 1400px 时，调整为相对定位 */
-@media (max-width: 1400px) {
+/* 1024-1400px 区间调整为相对定位 */
+@media (max-width: 1280px) {
   .table-of-contents {
     position: relative;
     top: 0;
     right: 0;
     width: 100%;
     max-height: none;
-    margin: 20px 0;
+    margin: 24px 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 

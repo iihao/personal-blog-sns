@@ -4,7 +4,8 @@
       <!-- Logo -->
       <div class="logo-section">
         <router-link to="/" class="logo-link" aria-label="返回首页">
-          <span class="logo-text">blog.sqlboy.top</span>
+          <img v-if="blogLogo" :src="blogLogo" alt="Logo" class="logo-image" />
+          <span v-else class="logo-text">blog.sqlboy.top</span>
         </router-link>
       </div>
 
@@ -29,6 +30,14 @@
         
         <!-- 已登录状态 -->
         <template v-else>
+          <router-link 
+            to="/write" 
+            class="btn-primary px-5 py-2 text-sm"
+            title="写文章"
+          >
+            <i class="fas fa-pen"></i> 写文章
+          </router-link>
+          
           <div class="user-menu" @click="toggleUserDropdown">
             <img v-if="userAvatar" :src="userAvatar" :alt="userName" class="user-avatar" />
             <div v-else class="user-avatar-placeholder">{{ userInitial }}</div>
@@ -54,7 +63,7 @@
         <ThemeToggle />
       </nav>
 
-      <!-- Mobile Menu Button -->
+      <!-- Mobile Menu Button (仅移动端显示) -->
       <button 
         class="mobile-menu-btn md:hidden"
         @click="toggleMenu"
@@ -76,12 +85,34 @@
           <router-link to="/" class="mobile-nav-link" @click="closeMenu">
             <i class="fas fa-home"></i> 首页
           </router-link>
-          <router-link to="/settings" class="mobile-nav-link" @click="closeMenu">
-            <i class="fas fa-user"></i> 设置
-          </router-link>
-          <router-link to="/register" class="mobile-nav-link" @click="closeMenu">
-            <i class="fas fa-pen"></i> 写文章
-          </router-link>
+          
+          <!-- 未登录状态 -->
+          <template v-if="!isLoggedIn">
+            <router-link to="/login" class="mobile-nav-link" @click="closeMenu">
+              <i class="fas fa-sign-in-alt"></i> 登录
+            </router-link>
+            <router-link to="/register" class="mobile-nav-link mobile-nav-link-primary" @click="closeMenu">
+              <i class="fas fa-user-plus"></i> 注册
+            </router-link>
+          </template>
+          
+          <!-- 已登录状态 -->
+          <template v-else>
+            <router-link to="/write" class="mobile-nav-link mobile-nav-link-primary" @click="closeMenu">
+              <i class="fas fa-pen"></i> 写文章
+            </router-link>
+            <router-link to="/settings" class="mobile-nav-link" @click="closeMenu">
+              <i class="fas fa-cog"></i> 个人设置
+            </router-link>
+            <router-link to="/admin/" class="mobile-nav-link" @click="closeMenu">
+              <i class="fas fa-tachometer-alt"></i> 管理后台
+            </router-link>
+            <div class="mobile-menu-divider"></div>
+            <button @click="handleLogoutMobile" class="mobile-nav-link mobile-nav-link-danger">
+              <i class="fas fa-sign-out-alt"></i> 退出登录
+            </button>
+          </template>
+          
           <div class="mobile-menu-divider"></div>
           <div class="mobile-theme-toggle">
             <span class="theme-label">
@@ -100,49 +131,118 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import ThemeToggle from './ThemeToggle.vue'
 import { useTheme } from '../composables/useTheme'
+
+const router = useRouter()
 
 const { isDark, toggleTheme } = useTheme()
 const isMenuOpen = ref(false)
 const isDropdownOpen = ref(false)
+const blogLogo = ref('')
 
 // 用户登录状态
 const isLoggedIn = ref(false)
 const userName = ref('用户')
 const userAvatar = ref('')
 
+// 加载博客配置
+const loadBlogConfig = async () => {
+  try {
+    const res = await fetch('/api/config/public')
+    const data = await res.json()
+    blogLogo.value = data.blog_logo || ''
+  } catch (error) {
+    console.error('加载博客配置失败:', error)
+  }
+}
+
 // 获取用户首字母
 const userInitial = computed(() => {
   return userName.value.charAt(0).toUpperCase()
 })
 
+// 强制退出登录（token 失效时）
+const forceLogout = (reason = '登录已过期') => {
+  console.log('强制退出登录:', reason)
+  localStorage.removeItem('blog_user')
+  localStorage.removeItem('blog_token')
+  localStorage.removeItem('blog_token_expiry')
+  isLoggedIn.value = false
+  userName.value = '用户'
+  userAvatar.value = ''
+  
+  // 显示提示并跳转到登录页
+  alert(reason + '，请重新登录')
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+  }
+}
+
 // 检查登录状态
 const checkLoginStatus = () => {
-  const user = localStorage.getItem('blog_user')
-  if (user) {
+  const userStr = localStorage.getItem('blog_user')
+  const token = localStorage.getItem('blog_token')
+  const expiry = localStorage.getItem('blog_token_expiry')
+  
+  // 检查 token 是否过期
+  if (expiry && Date.now() > parseInt(expiry)) {
+    console.log('Token 已过期，清除登录状态')
+    forceLogout('登录已过期')
+    return
+  }
+  
+  if (userStr && token) {
     try {
-      const userData = JSON.parse(user)
+      const userData = JSON.parse(userStr)
       isLoggedIn.value = true
       userName.value = userData.name || userData.username || '用户'
-      userAvatar.value = userData.avatar || ''
+      // 如果有头像使用头像，否则生成默认头像
+      userAvatar.value = userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username)}&background=667eea&color=fff&size=128`
+      console.log('用户已登录:', userData.username, '头像:', userAvatar.value)
     } catch (e) {
-      isLoggedIn.value = false
+      console.error('解析用户数据失败:', e)
+      forceLogout('用户数据异常')
     }
   } else {
     isLoggedIn.value = false
+    userAvatar.value = ''
   }
 }
 
 // 退出登录
-const handleLogout = () => {
+const logout = () => {
+  localStorage.removeItem('blog_user')
+  localStorage.removeItem('blog_token')
+  localStorage.removeItem('blog_token_expiry')
+  isLoggedIn.value = false
+  userName.value = '用户'
+  userAvatar.value = ''
+}
+
+// 退出登录
+const handleLogout = async () => {
   if (confirm('确定要退出登录吗？')) {
-    localStorage.removeItem('blog_user')
-    localStorage.removeItem('blog_token')
-    isLoggedIn.value = false
-    userName.value = '用户'
-    userAvatar.value = ''
+    try {
+      // 调用后端登出 API
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('blog_token')}`
+        }
+      })
+    } catch (e) {
+      console.error('登出 API 调用失败:', e)
+    }
+    
+    logout()
     isDropdownOpen.value = false
+    
+    // 如果当前在管理后台，跳转到首页
+    if (window.location.pathname.startsWith('/admin')) {
+      router.push('/')
+    }
   }
 }
 
@@ -175,14 +275,39 @@ const closeMenu = () => {
   document.body.style.overflow = ''
 }
 
+// 监听 storage 事件（其他标签页登录/登出）
+const handleStorageChange = (e) => {
+  if (e.key === 'blog_token' || e.key === 'blog_user') {
+    console.log('Storage 变化，重新检查登录状态')
+    checkLoginStatus()
+  }
+}
+
+// 监听页面可见性变化（从其他页面返回时）
+const handleVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    checkLoginStatus()
+  }
+}
+
 // 生命周期
 onMounted(() => {
   checkLoginStatus()
+  loadBlogConfig()
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('storage', handleStorageChange)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  
+  // 路由变化时也检查（单页应用内跳转）
+  router.afterEach(() => {
+    checkLoginStatus()
+  })
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('storage', handleStorageChange)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -203,6 +328,14 @@ onUnmounted(() => {
 
 .logo-link {
   text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.logo-image {
+  height: 40px;
+  max-width: 200px;
+  object-fit: contain;
 }
 
 .logo-text {
@@ -217,6 +350,10 @@ onUnmounted(() => {
 
 .logo-link:hover .logo-text {
   opacity: 0.8;
+}
+
+.logo-link:hover .logo-image {
+  opacity: 0.9;
 }
 
 /* Desktop Navigation */
@@ -272,12 +409,23 @@ onUnmounted(() => {
 }
 
 .user-dropdown {
-  @apply absolute right-0 mt-2 w-48;
+  @apply absolute right-0 w-48;
   @apply bg-white dark:bg-gray-800;
   @apply rounded-xl shadow-lg;
   @apply border border-gray-200 dark:border-gray-700;
   @apply py-2;
+  @apply origin-top-right;
+  @apply transition-all duration-200 ease-out;
   z-index: 1000;
+  margin-top: 8px;
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.user-dropdown[style*="display: none"] {
+  opacity: 0;
+  transform: scaleY(0);
+  margin-top: 0;
 }
 
 .dropdown-item {
@@ -415,6 +563,32 @@ onUnmounted(() => {
 .mobile-nav-link.router-link-active {
   background: rgba(124, 58, 237, 0.1);
   color: var(--accent-primary);
+}
+
+/* 移动端主要操作按钮（写文章/注册） */
+.mobile-nav-link-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white !important;
+  font-weight: 600;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.mobile-nav-link-primary:hover {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 移动端危险操作按钮（退出登录） */
+.mobile-nav-link-danger {
+  color: var(--danger) !important;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.mobile-nav-link-danger:hover {
+  background: rgba(255, 59, 48, 0.1);
 }
 
 .mobile-menu-divider {

@@ -1,5 +1,10 @@
 <template>
   <div class="post-view">
+    <!-- 阅读进度条 -->
+    <div class="reading-progress-bar">
+      <div class="progress-fill" :style="{ width: scrollProgress + '%' }"></div>
+    </div>
+
     <!-- 主题切换按钮 -->
     <div class="theme-toggle-fixed">
       <ThemeToggle />
@@ -54,7 +59,13 @@
           </header>
           
           <div class="post-content">
-            <MarkdownPreview :content="post.content" />
+            <!-- 自动判断内容格式：如果包含 HTML 标签则直接渲染 -->
+            <template v-if="post.content_format === 'richText' || (post.content && post.content.trim().startsWith('<'))">
+              <div class="rich-text-content" v-html="post.content"></div>
+            </template>
+            <template v-else>
+              <MarkdownPreview :content="post.content" />
+            </template>
           </div>
           
           <!-- Post Footer -->
@@ -63,6 +74,21 @@
               <span class="stat-item" v-if="viewCount">
                 <i class="fas fa-eye"></i> {{ viewCount }} 次阅读
               </span>
+              <button 
+                class="stat-item like-btn" 
+                :class="{ 'liked': isLiked }"
+                @click="toggleLike"
+                :disabled="liking"
+              >
+                <i :class="isLiked ? 'fas fa-heart' : 'far fa-heart'"></i> 
+                {{ likeCount }} 次点赞
+              </button>
+            </div>
+            <div v-if="liking" class="like-status">
+              <i class="fas fa-spinner fa-spin"></i> 处理中...
+            </div>
+            <div v-else-if="likeError" class="like-error">
+              <i class="fas fa-exclamation-circle"></i> {{ likeError }}
             </div>
           </div>
 
@@ -98,24 +124,14 @@
             <!-- Comment Form -->
             <div class="comment-form">
               <h3>发表评论</h3>
-              <form @submit.prevent="submitComment">
-                <div class="form-group">
-                  <input 
-                    v-model="commentForm.name" 
-                    type="text" 
-                    placeholder="您的昵称 *" 
-                    required
-                    class="form-input"
-                  />
-                </div>
-                <div class="form-group">
-                  <input 
-                    v-model="commentForm.email" 
-                    type="email" 
-                    placeholder="您的邮箱 (可选)"
-                    class="form-input"
-                  />
-                </div>
+              
+              <!-- 未登录提示 -->
+              <div v-if="!isAuthenticated" class="login-required">
+                <p>请先<a href="/login" @click.prevent="goToLogin">登录</a>才能发表评论。</p>
+              </div>
+              
+              <!-- 登录后评论表单 -->
+              <form v-else @submit.prevent="submitComment">
                 <div class="form-group">
                   <textarea 
                     v-model="commentForm.content" 
@@ -162,7 +178,8 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../store'
 import ThemeToggle from '../components/ThemeToggle.vue'
 import MarkdownPreview from '../components/MarkdownPreview.vue'
 import TableOfContents from '../components/TableOfContents.vue'
@@ -170,6 +187,8 @@ import CommentTree from '../components/CommentTree.vue'
 import { useMarkdown } from '../composables/useMarkdown'
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 const post = ref(null)
 const prevPost = ref(null)
 const nextPost = ref(null)
@@ -179,13 +198,47 @@ const error = ref(null)
 const submitting = ref(false)
 const viewCount = ref(0)
 
+// 点赞相关
+const likeCount = ref(0)
+const isLiked = ref(false)
+const liking = ref(false)
+const likeError = ref(null)
+const deviceId = ref('')
+
 const { calculateReadTime } = useMarkdown()
 
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const currentUser = computed(() => authStore.user)
+
+// 生成设备 ID（用于未登录用户）
+const generateDeviceId = () => {
+  let id = localStorage.getItem('blog_device_id')
+  if (!id) {
+    id = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now()
+    localStorage.setItem('blog_device_id', id)
+  }
+  deviceId.value = id
+  return id
+}
+
+// 获取用户代理
+const getDeviceName = () => {
+  const ua = navigator.userAgent
+  if (ua.includes('Mobile')) return '移动设备'
+  if (ua.includes('Tablet')) return '平板设备'
+  if (ua.includes('Mac')) return 'Mac'
+  if (ua.includes('Win')) return 'Windows'
+  if (ua.includes('Linux')) return 'Linux'
+  return '未知设备'
+}
+
 const commentForm = ref({
-  name: '',
-  email: '',
   content: ''
 })
+
+const goToLogin = () => {
+  router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+}
 
 const readTime = computed(() => {
   if (!post.value?.content) return 0
@@ -226,8 +279,13 @@ const fetchPost = async () => {
       return
     }
     
+    // 设置阅读量
+    viewCount.value = data.viewCount || post.value.view_count || 0
+    
     await fetchAllPosts()
     await fetchComments()
+    await fetchLikeCount()
+    await checkLikeStatus()
     
   } catch (err) {
     console.error('Error fetching post:', err)
@@ -255,27 +313,36 @@ const fetchAllPosts = async () => {
 
 const fetchComments = async () => {
   try {
-    // 获取所有评论（包括待审核），后端会过滤显示
-    // 使用 approved=all 让后端返回所有顶级评论
-    const response = await fetch(`/api/comments?post_id=${route.params.id}&approved=all`)
+    // 只显示已审核的评论
+    const response = await fetch(`/api/comments?post_id=${route.params.id}&approved=true`)
     const data = await response.json()
-    // 过滤：显示已审核评论 + 顶级评论（pending 也显示，适合个人博客）
-    comments.value = (data.comments || []).filter(c => 
-      c.status === 'approved' || c.parent_id === null
-    )
+    // 过滤：只显示已审核评论
+    comments.value = (data.comments || []).filter(c => c.status === 'approved')
   } catch (err) {
     console.error('Error fetching comments:', err)
   }
 }
 
 const submitComment = async () => {
-  if (!commentForm.value.name || !commentForm.value.content) {
-    alert('请填写昵称和评论内容')
+  if (!commentForm.value.content) {
+    showToast('请输入评论内容', 'error')
     return
   }
 
   try {
     submitting.value = true
+    
+    // 从 localStorage 获取用户信息
+    const userStr = localStorage.getItem('blog_user')
+    let authorName = '游客'
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        authorName = userData.name || userData.username || '游客'
+      } catch (e) {
+        console.error('解析用户数据失败:', e)
+      }
+    }
     
     const response = await fetch('/api/comments', {
       method: 'POST',
@@ -284,23 +351,22 @@ const submitComment = async () => {
       },
       body: JSON.stringify({
         post_id: parseInt(route.params.id),
-        author_name: commentForm.value.name,
-        author_email: commentForm.value.email || '',
+        author_name: authorName,
         content: commentForm.value.content
       })
     })
 
     if (response.ok) {
-      alert('评论提交成功！等待审核后显示。')
-      commentForm.value = { name: '', email: '', content: '' }
+      showToast('评论提交成功！等待审核后显示。', 'success')
+      commentForm.value = { content: '' }
       await fetchComments()
     } else {
       const error = await response.json()
-      alert(`评论失败：${error.error}`)
+      showToast(`评论失败：${error.error}`, 'error')
     }
   } catch (err) {
     console.error('Error submitting comment:', err)
-    alert('评论提交失败，请稍后重试')
+    showToast('评论提交失败，请稍后重试', 'error')
   } finally {
     submitting.value = false
   }
@@ -319,6 +385,7 @@ const countComments = (comments) => {
 }
 
 onMounted(() => {
+  generateDeviceId()
   fetchPost()
 })
 
@@ -332,9 +399,116 @@ watch(() => route.params.id, (newId, oldId) => {
     comments.value = []
     loading.value = true
     error.value = null
+    isLiked.value = false
+    likeCount.value = 0
     fetchPost()
   }
 })
+
+// ===== 点赞功能 =====
+
+// 获取点赞数
+const fetchLikeCount = async () => {
+  try {
+    const response = await fetch(`/api/likes/post/${route.params.id}`)
+    const data = await response.json()
+    likeCount.value = data.count || 0
+  } catch (err) {
+    console.error('Error fetching like count:', err)
+  }
+}
+
+// 检查是否已点赞
+const checkLikeStatus = async () => {
+  try {
+    const headers = {}
+    const token = localStorage.getItem('blog_token')
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    if (deviceId.value) {
+      headers['X-Device-Id'] = deviceId.value
+    }
+    
+    const response = await fetch(`/api/likes/post/${route.params.id}/check`, { headers })
+    const data = await response.json()
+    isLiked.value = data.liked || false
+  } catch (err) {
+    console.error('Error checking like status:', err)
+  }
+}
+
+// 点赞/取消点赞
+const toggleLike = async () => {
+  if (liking.value) return
+  
+  liking.value = true
+  likeError.value = null
+  
+  try {
+    if (isLiked.value) {
+      // 取消点赞（需要登录）
+      if (!authStore.isAuthenticated) {
+        likeError.value = '取消点赞需要登录'
+        liking.value = false
+        return
+      }
+      
+      const response = await fetch(`/api/likes/post/${route.params.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('blog_token')}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        likeCount.value = data.count
+        isLiked.value = false
+        showToast('已取消点赞', 'success')
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '取消点赞失败')
+      }
+    } else {
+      // 点赞
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      const token = localStorage.getItem('blog_token')
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      const body = {
+        device_id: deviceId.value,
+        device_name: getDeviceName()
+      }
+      
+      const response = await fetch(`/api/likes/post/${route.params.id}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        likeCount.value = data.count
+        isLiked.value = true
+        showToast(authStore.isAuthenticated ? '点赞成功' : '点赞成功（未登录）', 'success')
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '点赞失败')
+      }
+    }
+  } catch (err) {
+    console.error('Error toggling like:', err)
+    likeError.value = err.message
+    showToast(err.message, 'error')
+  } finally {
+    liking.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -577,6 +751,115 @@ watch(() => route.params.id, (newId, oldId) => {
   }
 }
 
+/* 富文本内容样式 */
+.rich-text-content {
+  font-size: 1.0625rem;
+  line-height: 1.9;
+}
+
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3,
+.rich-text-content h4,
+.rich-text-content h5,
+.rich-text-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.rich-text-content h1 { font-size: 2em; }
+.rich-text-content h2 { font-size: 1.5em; }
+.rich-text-content h3 { font-size: 1.25em; }
+
+.rich-text-content p {
+  margin-bottom: 1.2em;
+}
+
+.rich-text-content strong,
+.rich-text-content b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rich-text-content em,
+.rich-text-content i {
+  font-style: italic;
+}
+
+.rich-text-content a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.rich-text-content a:hover {
+  border-bottom-color: var(--accent-primary);
+}
+
+.rich-text-content ul,
+.rich-text-content ol {
+  margin-bottom: 1.2em;
+  padding-left: 2em;
+}
+
+.rich-text-content li {
+  margin-bottom: 0.5em;
+}
+
+.rich-text-content blockquote {
+  border-left: 4px solid var(--accent-primary);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  background: rgba(124, 58, 237, 0.05);
+  padding: 1em 1.5em;
+  border-radius: 0 8px 8px 0;
+}
+
+.rich-text-content pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1.5em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.rich-text-content code {
+  background: rgba(124, 58, 237, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.rich-text-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5em 0;
+  display: block;
+}
+
+.rich-text-content hr {
+  border: none;
+  border-top: 2px solid var(--border-color);
+  margin: 2em 0;
+}
+
 /* ===== 文章底部 ===== */
 .post-footer {
   background: var(--card-bg);
@@ -604,6 +887,58 @@ watch(() => route.params.id, (newId, oldId) => {
 
 .stat-item i {
   color: var(--accent-primary);
+}
+
+/* 点赞按钮 */
+.like-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.like-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.like-btn.liked {
+  background: rgba(255, 59, 48, 0.1);
+  border-color: #ff3b30;
+  color: #ff3b30;
+}
+
+.like-btn.liked i {
+  color: #ff3b30;
+}
+
+.like-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.like-status, .like-error {
+  font-size: 0.8125rem;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.like-status {
+  color: var(--accent-primary);
+}
+
+.like-error {
+  color: var(--danger-color, #ff3b30);
 }
 
 /* ===== 文章导航 ===== */
@@ -780,5 +1115,62 @@ watch(() => route.params.id, (newId, oldId) => {
   padding: 40px 20px;
   color: var(--text-secondary);
   font-size: 1rem;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .post-header {
+    padding: 24px !important;
+  }
+  
+  .post-content {
+    padding: 24px !important;
+  }
+  
+  .comment-form {
+    padding: 24px !important;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .submit-btn {
+    width: 100%;
+  }
+  
+  .comment-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .comment-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .comment-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .comment-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-header,
+  .post-content,
+  .comment-form {
+    padding: 16px !important;
+  }
+  
+  .post-meta-top {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 </style>

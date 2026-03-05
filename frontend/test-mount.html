@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue Mount Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .success { color: green; }
+    .error { color: red; }
+    #app { border: 2px solid #667eea; padding: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Vue 挂载测试</h1>
+  <div id="status">正在测试...</div>
+  <div id="app">
+    <p v-if="message">{{ message }}</p>
+    <p v-else>Vue 未挂载</p>
+  </div>
+
+  <script type="module">
+    const statusEl = document.getElementById('status')
+    
+    try {
+      // 测试 Vue 是否能从 CDN 加载
+      const { createApp } = await import('https://unpkg.com/vue@3.5.29/dist/vue.esm-browser.js')
+      
+      const app = createApp({
+        data() {
+          return {
+            message: '✅ Vue 挂载成功！'
+          }
+        },
+        mounted() {
+          statusEl.innerHTML = '<span class="success">✅ Vue 3.5.29 加载并挂载成功</span>'
+          statusEl.className = 'success'
+        }
+      })
+      
+      app.mount('#app')
+    } catch (e) {
+      statusEl.innerHTML = '<span class="error">❌ 错误：' + e.message + '</span>'
+      statusEl.className = 'error'
+      console.error('Vue mount error:', e)
+    }
+  </script>
+</body>
+</html>

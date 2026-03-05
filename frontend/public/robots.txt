@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sqlboy.top/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin/

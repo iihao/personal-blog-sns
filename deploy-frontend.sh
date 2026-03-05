@@ -22,6 +22,11 @@ echo "📤 部署新版本..."
 rm -rf /var/www/blog-frontend/*
 cp -r /home/admin/.openclaw/workspace/blog-project/frontend/dist/* /var/www/blog-frontend/
 
+# 3.1 同步 changelog.json
+echo "📝 同步更新日志..."
+mkdir -p /var/www/blog-frontend/data
+cp /home/admin/.openclaw/workspace/blog-project/data/changelog.json /var/www/blog-frontend/data/changelog.json
+
 # 4. 设置权限
 echo "🔐 设置权限..."
 chown -R nginx:nginx /var/www/blog-frontend/

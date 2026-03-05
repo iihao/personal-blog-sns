@@ -4,8 +4,26 @@ const sqlite3 = require('sqlite3').verbose();
 const router = express.Router();
 const db = new sqlite3.Database('./blog.db');
 
+// 获取公开配置（无需认证）- 必须放在最前面
+router.get('/public', (req, res) => {
+  db.all('SELECT * FROM settings', (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    const config = {};
+    (rows || []).forEach(row => {
+      config[row.key] = row.value;
+    });
+    res.json({ 
+      blog_title: config.blog_title || config.site_title || 'My Blog',
+      blog_description: config.blog_description || config.site_description || 'A personal blog',
+      blog_logo: config.blog_logo || ''
+    });
+  });
+});
+
 // 获取博客配置 (所有 settings)
-router.get('/config', (req, res) => {
+router.get('/', (req, res) => {
   db.all('SELECT * FROM settings', (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -20,7 +38,7 @@ router.get('/config', (req, res) => {
 });
 
 // 获取单个配置项
-router.get('/config/:key', (req, res) => {
+router.get('/:key', (req, res) => {
   db.get('SELECT * FROM settings WHERE key = ?', [req.params.key], (err, row) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -33,7 +51,7 @@ router.get('/config/:key', (req, res) => {
 });
 
 // 更新博客配置
-router.put('/config/:key', (req, res) => {
+router.put('/:key', (req, res) => {
   const { value, description } = req.body;
   const key = req.params.key;
   
@@ -50,7 +68,7 @@ router.put('/config/:key', (req, res) => {
 });
 
 // 批量更新配置
-router.put('/config', (req, res) => {
+router.put('/', (req, res) => {
   const configs = req.body;
   
   if (!configs || typeof configs !== 'object') {

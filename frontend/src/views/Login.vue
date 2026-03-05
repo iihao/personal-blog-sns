@@ -105,7 +105,8 @@
             </div>
           </form>
 
-          <!-- 第三方登录 -->
+          <!-- 第三方登录占位（待实现） -->
+          <!-- 
           <div class="social-login">
             <div class="divider">
               <span>或使用以下方式登录</span>
@@ -117,11 +118,9 @@
               <button class="social-btn google" title="Google 登录">
                 <i class="fab fa-google"></i>
               </button>
-              <button class="social-btn wechat" title="微信登录">
-                <i class="fab fa-weixin"></i>
-              </button>
             </div>
           </div>
+          -->
         </div>
       </div>
     </div>
@@ -131,8 +130,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../store'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const formData = ref({
   username: '',
@@ -170,36 +171,110 @@ const handleLogin = async () => {
   loginError.value = ''
   
   try {
-    // TODO: 实际的 API 调用
-    // const response = await fetch('/api/auth/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     username: formData.value.username,
-    //     password: formData.value.password
-    //   })
-    // })
+    console.log('开始登录...', formData.value.username)
     
-    // 模拟登录（演示用）
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 重试逻辑（最多 3 次）
+    let response
+    let lastError
     
-    // 模拟成功响应
-    const userData = {
-      id: 1,
-      username: formData.value.username,
-      name: formData.value.username.split('@')[0],
-      email: formData.value.username.includes('@') ? formData.value.username : '',
-      avatar: ''
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: formData.value.username,
+            password: formData.value.password
+          })
+        })
+        
+        // 如果是 502/503/504 错误，等待后重试
+        if ([502, 503, 504].includes(response.status) && attempt < 3) {
+          console.log(`请求失败 (${response.status})，${attempt}/3，等待重试...`)
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          continue
+        }
+        
+        break
+      } catch (err) {
+        lastError = err
+        if (attempt < 3) {
+          console.log(`请求出错，${attempt}/3，等待重试...`)
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+        }
+      }
     }
     
-    // 保存用户信息
-    localStorage.setItem('blog_user', JSON.stringify(userData))
-    localStorage.setItem('blog_token', 'demo_token_' + Date.now())
+    if (!response) {
+      throw new Error(lastError?.message || '网络连接失败，请检查网络或服务状态')
+    }
     
-    // 如果选择记住我，设置较长的过期时间
+    console.log('响应状态:', response.status)
+    
+    // 检查响应类型
+    const contentType = response.headers.get('content-type')
+    console.log('Content-Type:', contentType)
+    
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text()
+      console.error('非 JSON 响应:', text.substring(0, 200))
+      
+      if (response.status === 502) {
+        throw new Error('服务暂时不可用，请稍后重试（502 Bad Gateway）')
+      } else if (response.status === 503) {
+        throw new Error('服务维护中，请稍后重试（503 Service Unavailable）')
+      } else {
+        throw new Error('服务器返回了非 JSON 响应，请联系管理员')
+      }
+    }
+    
+    const data = await response.json()
+    console.log('响应数据:', data)
+    
+    if (!response.ok) {
+      throw new Error(data.error || '登录失败')
+    }
+    
+    if (!data.success) {
+      throw new Error(data.error || '登录失败')
+    }
+    
+    // 保存用户信息和 Token
+    const userData = {
+      id: data.user.id || 1,
+      username: data.user.username,
+      name: data.user.name || data.user.username,
+      email: data.user.email || '',
+      avatar: data.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.username)}&background=667eea&color=fff&size=128`,
+      role: data.user.role || 'user',
+      permissions: data.user.permissions || []
+    }
+    
+    // 保存到 localStorage
+    localStorage.setItem('blog_user', JSON.stringify(userData))
+    localStorage.setItem('blog_token', data.token)
+    localStorage.setItem('blog_token_expiry', Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 天
+    
+    // 如果选择记住我
     if (formData.value.remember) {
       localStorage.setItem('blog_remember', 'true')
     }
+    
+    // 更新 Pinia store 状态（关键修复！）
+    authStore.setToken(data.token)
+    authStore.user = userData
+    
+    // 触发 storage 事件（通知其他组件登录状态已改变）
+    window.dispatchEvent(new Event('storage'))
+    
+    console.log('登录成功:', userData)
+    console.log('Auth store 状态:', {
+      isAuthenticated: authStore.isAuthenticated,
+      user: authStore.user,
+      token: authStore.token
+    })
     
     // 跳转到首页或之前访问的页面
     const redirect = router.currentRoute.value.query.redirect || '/'

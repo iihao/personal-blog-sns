@@ -118,122 +118,71 @@ if (!fs.existsSync('./uploads')) {
 }
 
 // Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use(express.static(frontendDistPath));
 
 // API Routes - Load route files
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
 const mediaRoutes = require('./routes/media');
 const commentsRoutes = require('./routes/comments');
-const configRoutes = require('./routes/config');
+const settingsRoutes = require('./routes/settings');
+const publicPostsRoutes = require('./routes/public-posts');
+const rssRoutes = require('./routes/rss');
+const changelogRoutes = require('./routes/changelog');
+const likesRoutes = require('./routes/likes');
+const projectsRoutes = require('./routes/projects');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/comments', commentsRoutes);
-app.use('/api/config', configRoutes);
-app.use('/api/posts', postsRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/changelog', changelogRoutes);
+app.use('/api/likes', likesRoutes);
+app.use('/api/projects', projectsRoutes);
 
-// Admin routes - Express 5.x compatible (direct file serving)
-const adminPublicPath = path.join(__dirname, 'public');
+// Public posts API (no auth required)
+app.use('/api/posts', publicPostsRoutes);
 
-// Helper to serve admin HTML files directly
-function serveAdminHTML(req, res) {
+// RSS and Sitemap
+app.use('/rss', rssRoutes);
+app.get('/sitemap.xml', (req, res) => {
+  res.redirect('/rss/sitemap.xml');
+});
+app.get('/feed.xml', (req, res) => {
+  res.redirect('/rss/feed.xml');
+});
+
+// Admin posts API (with auth)
+app.use('/api/admin/posts', postsRoutes);
+
+// Admin routes - Serve Vue 3 frontend for /admin paths
+// The Vue app handles all admin sub-routes via Vue Router
+function serveAdminVue(req, res) {
   // Skip API routes
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Not found' });
   }
   
-  const relativePath = req.path.replace(/^\/admin\/?/, '');
-  console.log('[Admin Route] path:', req.path, 'relative:', relativePath);
+  // Serve Vue frontend index.html for all /admin routes
+  // Vue Router will handle the client-side routing
+  const indexPath = path.resolve(frontendDistPath, 'index.html');
   
-  // Root or empty path -> index.html
-  if (!relativePath || relativePath === '') {
-    const content = fs.readFileSync(path.join(adminPublicPath, 'index.html'), 'utf8');
+  if (fs.existsSync(indexPath)) {
+    const content = fs.readFileSync(indexPath, 'utf8');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(content);
   }
   
-  // No extension -> try .html file, fallback to index.html
-  if (!relativePath.includes('.')) {
-    const htmlPath = path.join(adminPublicPath, relativePath + '.html');
-    if (fs.existsSync(htmlPath)) {
-      const content = fs.readFileSync(htmlPath, 'utf8');
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(content);
-    }
-    const content = fs.readFileSync(path.join(adminPublicPath, 'index.html'), 'utf8');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.send(content);
-  }
-  
-  // With extension -> serve directly or 404
-  const fullPath = path.join(adminPublicPath, relativePath);
-  if (fs.existsSync(fullPath)) {
-    const ext = path.extname(fullPath).toLowerCase();
-    const mimeTypes = {
-      '.html': 'text/html',
-      '.css': 'text/css',
-      '.js': 'application/javascript',
-      '.json': 'application/json',
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.gif': 'image/gif',
-      '.svg': 'image/svg+xml',
-      '.ico': 'image/x-icon'
-    };
-    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
-    return res.sendFile(fullPath);
-  }
-  
-  res.status(404).json({ error: 'Not found' });
+  res.status(404).json({ error: 'Frontend not found. Please run npm run build in frontend directory.' });
 }
 
-// All admin routes - Express 5.x compatible (no optional params)
-app.all('/admin', serveAdminHTML);
-app.all('/admin/:page', serveAdminHTML);
-app.all('/admin/:page/:subpage', serveAdminHTML);
-app.all('/admin/:page/:subpage/:third', serveAdminHTML);
+// All admin routes - Vue Router handles sub-routes
+app.all('/admin', serveAdminVue);
+app.use('/admin', serveAdminVue);
 
-// Public posts endpoints (no auth required) - MUST be before postsRoutes
-app.get('/api/posts/stats', (req, res) => {
-  db.all("SELECT COUNT(*) as total FROM posts", (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const total = rows[0]?.total || 0;
-    
-    db.all("SELECT COUNT(*) as count FROM posts WHERE status = 'published'", (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      const published = rows[0]?.count || 0;
-      
-      db.all("SELECT COUNT(*) as count FROM posts WHERE status = 'draft'", (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        const drafts = rows[0]?.count || 0;
-        
-        res.json({ total, published, drafts });
-      });
-    });
-  });
-});
-
-app.get('/api/posts', (req, res) => {
-  db.all("SELECT * FROM posts ORDER BY created_at DESC", (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json({ posts: rows || [] });
-  });
-});
-
-app.get('/api/posts/:id', (req, res) => {
-  db.get("SELECT * FROM posts WHERE id = ?", [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!row) {
-      return res.status(404).json({ error: 'Post not found' });
-    }
-    res.json({ post: row });
-  });
-});
+// 注意：/api/posts 路由已移至 routes/posts.js 统一管理
 
 // Public config endpoint (no auth required)
 app.get('/api/config/public', (req, res) => {
@@ -247,8 +196,9 @@ app.get('/api/config/public', (req, res) => {
       config[row.key] = row.value;
     });
     res.json({ 
-      blog_title: config.site_title || 'My Blog',
-      blog_description: config.site_description || 'A personal blog'
+      blog_title: config.blog_title || config.site_title || 'My Blog',
+      blog_description: config.blog_description || config.site_description || 'A personal blog',
+      blog_logo: config.blog_logo || ''
     });
   });
 });
@@ -271,8 +221,23 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Fallback for undefined routes
-app.use((req, res) => {
+// Frontend SPA fallback - serve index.html for non-API routes
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || req.path.startsWith('/rss/') || req.path.startsWith('/admin/')) {
+    return next();
+  }
+  
+  // For other routes, serve frontend index.html (Vue Router handles client-side routing)
+  const frontendDistPath = path.join(__dirname, '../frontend/dist');
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  
+  if (fs.existsSync(indexPath)) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.sendFile(indexPath);
+  }
+  
+  // If index.html doesn't exist, return 404
   res.status(404).json({ error: 'Route not found' });
 });
 

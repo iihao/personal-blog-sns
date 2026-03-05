@@ -8,26 +8,50 @@ const router = express.Router();
 const db = new sqlite3.Database('./blog.db');
 
 // Login - 支持简单 admin 登录和数据库用户登录
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   
   if (!username || !password) {
     return res.status(400).json({ error: '请输入用户名和密码' });
   }
   
-  // 简单 admin 登录（用于初始访问）
+  // 简单 admin 登录（用于初始访问）- 从数据库加载真实角色
   if (validateLogin(username, password)) {
-    const token = generateToken(username);
-    res.cookie('token', token, { 
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      sameSite: 'strict'
-    });
-    return res.json({ 
-      success: true,
-      token,
-      user: { username, role: 'admin', id: 1 }
-    });
+    try {
+      const token = await generateToken(username);
+      
+      // 从数据库获取用户信息
+      db.get('SELECT id, username, role, permissions, email FROM users WHERE username = ?', [username], (err, user) => {
+        if (err || !user) {
+          return res.json({ 
+            success: true,
+            token,
+            user: { username, role: 'admin', id: 1 }
+          });
+        }
+        
+        res.cookie('token', token, { 
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          httpOnly: true,
+          sameSite: 'strict'
+        });
+        
+        res.json({ 
+          success: true,
+          token,
+          user: { 
+            id: user.id, 
+            username: user.username, 
+            role: user.role || 'admin',
+            permissions: user.permissions ? JSON.parse(user.permissions) : [],
+            email: user.email 
+          }
+        });
+      });
+    } catch (error) {
+      return res.status(500).json({ error: '生成 token 失败' });
+    }
+    return;
   }
   
   // 数据库用户登录
@@ -297,8 +321,7 @@ router.post('/reset-password/:userId', authenticateToken, requireAdmin, (req, re
 
 // Get all users (admin only)
 router.get('/users', authenticateToken, requireAdmin, (req, res) => {
-  
-  db.all('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC', [], (err, users) => {
+  db.all('SELECT id, username, role, permissions, is_active, email, created_at, last_login FROM users ORDER BY created_at DESC', [], (err, users) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -306,9 +329,40 @@ router.get('/users', authenticateToken, requireAdmin, (req, res) => {
   });
 });
 
+// Update user (super_admin only)
+router.put('/users/:userId', authenticateToken, (req, res) => {
+  const userId = req.params.userId;
+  const { role, permissions, is_active, email } = req.body;
+  
+  // 只有超级管理员可以修改用户权限
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: '需要超级管理员权限' });
+  }
+  
+  // 不能修改自己的角色为普通用户
+  if (parseInt(userId) === req.user.id && role && role !== 'super_admin') {
+    return res.status(400).json({ error: '不能修改自己的超级管理员身份' });
+  }
+  
+  const perms = permissions ? JSON.stringify(permissions) : null;
+  
+  db.run(
+    'UPDATE users SET role = COALESCE(?, role), permissions = COALESCE(?, permissions), is_active = COALESCE(?, is_active), email = COALESCE(?, email), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [role, perms, is_active, email, userId],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: '用户不存在' });
+      }
+      res.json({ message: '用户信息已更新' });
+    }
+  );
+});
+
 // Delete user (admin only)
 router.delete('/users/:userId', authenticateToken, requireAdmin, (req, res) => {
-  
   const userId = req.params.userId;
   
   // Prevent deleting yourself
@@ -316,14 +370,74 @@ router.delete('/users/:userId', authenticateToken, requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'Cannot delete your own account' });
   }
   
-  db.run('DELETE FROM users WHERE id = ?', [userId], function(err) {
+  // 不能删除超级管理员
+  db.get('SELECT role FROM users WHERE id = ?', [userId], (err, user) => {
+    if (user && user.role === 'super_admin') {
+      return res.status(403).json({ error: '不能删除超级管理员账号' });
+    }
+    
+    db.run('DELETE FROM users WHERE id = ?', [userId], function(err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      res.json({ message: 'User deleted successfully' });
+    });
+  });
+});
+
+// 系统配置 API（仅 super_admin）
+router.get('/config', authenticateToken, (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: '需要超级管理员权限' });
+  }
+  
+  db.all('SELECT * FROM system_config ORDER BY config_key', [], (err, configs) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    
+    const configObj = {};
+    configs.forEach(c => {
+      configObj[c.config_key] = c.config_value;
+    });
+    
+    res.json({ config: configObj });
+  });
+});
+
+router.put('/config', authenticateToken, (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: '需要超级管理员权限' });
+  }
+  
+  const { config_key, config_value } = req.body;
+  
+  if (!config_key || config_value === undefined) {
+    return res.status(400).json({ error: '配置项和值不能为空' });
+  }
+  
+  db.run(
+    'INSERT OR REPLACE INTO system_config (config_key, config_value, updated_at, updated_by) VALUES (?, ?, CURRENT_TIMESTAMP, ?)',
+    [config_key, config_value, req.user.id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ message: '配置已更新', config_key, config_value });
     }
-    res.json({ message: 'User deleted successfully' });
+  );
+});
+
+// 权限列表 API
+router.get('/permissions', authenticateToken, (req, res) => {
+  db.all('SELECT * FROM permissions ORDER BY category, permission_name', [], (err, permissions) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json({ permissions });
   });
 });
 

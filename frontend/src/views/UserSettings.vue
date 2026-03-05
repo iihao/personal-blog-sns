@@ -98,9 +98,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeMount } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store'
 
+const router = useRouter()
 const authStore = useAuthStore()
 
 const user = ref({
@@ -118,6 +120,17 @@ const passwordForm = ref({
 
 const saving = ref(false)
 const changingPassword = ref(false)
+
+// 检查登录状态
+const checkAuth = async () => {
+  const isAuthenticated = await authStore.checkAuth()
+  if (!isAuthenticated) {
+    // 重定向到登录页，并携带返回地址
+    router.push(`/login?redirect=${encodeURIComponent('/settings')}`)
+    return false
+  }
+  return true
+}
 
 // 加载用户信息
 const loadUser = async () => {
@@ -155,15 +168,15 @@ const updateProfile = async () => {
     })
 
     if (response.ok) {
-      alert('个人资料更新成功！')
+      showToast('个人资料更新成功！', 'success')
       await loadUser()
     } else {
       const error = await response.json()
-      alert(`更新失败：${error.error}`)
+      showToast(`更新失败：${error.error}`, 'error')
     }
   } catch (error) {
     console.error('Error updating profile:', error)
-    alert('更新失败，请稍后重试')
+    showToast('更新失败，请稍后重试', 'error')
   } finally {
     saving.value = false
   }
@@ -172,12 +185,12 @@ const updateProfile = async () => {
 // 修改密码
 const changePassword = async () => {
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    alert('两次输入的新密码不一致')
+    showToast('两次输入的新密码不一致', 'error')
     return
   }
 
   if (passwordForm.value.newPassword.length < 6) {
-    alert('密码长度至少 6 位')
+    showToast('密码长度至少 6 位', 'error')
     return
   }
 
@@ -197,27 +210,32 @@ const changePassword = async () => {
     })
 
     if (response.ok) {
-      alert('密码修改成功！请重新登录')
+      showToast('密码修改成功！请重新登录', 'success')
       passwordForm.value = {
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       }
       authStore.logout()
+      router.push('/login')
     } else {
       const error = await response.json()
-      alert(`修改失败：${error.error}`)
+      showToast(`修改失败：${error.error}`, 'error')
     }
   } catch (error) {
     console.error('Error changing password:', error)
-    alert('修改失败，请稍后重试')
+    showToast('修改失败，请稍后重试', 'error')
   } finally {
     changingPassword.value = false
   }
 }
 
-onMounted(() => {
-  loadUser()
+// 生命周期
+onBeforeMount(async () => {
+  const isAuthenticated = await checkAuth()
+  if (isAuthenticated) {
+    await loadUser()
+  }
 })
 </script>
 

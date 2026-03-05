@@ -19,10 +19,18 @@
 
         <div class="comment-actions">
           <button 
+            v-if="isAuthenticated && depth < MAX_DEPTH"
             @click="showReplyForm = !showReplyForm" 
             class="action-btn reply-btn"
           >
             <i class="fas fa-reply"></i> 回复
+          </button>
+          <button 
+            v-else-if="!isAuthenticated && depth < MAX_DEPTH"
+            @click="promptLogin"
+            class="action-btn reply-btn"
+          >
+            <i class="fas fa-reply"></i> 登录后回复
           </button>
           <button 
             v-if="canDelete"
@@ -35,16 +43,7 @@
 
         <!-- 回复表单 -->
         <transition name="slide">
-          <form v-if="showReplyForm" @submit.prevent="submitReply" class="reply-form">
-            <div class="form-group">
-              <input 
-                v-model="replyForm.name" 
-                type="text" 
-                placeholder="您的昵称 *" 
-                required
-                class="form-input"
-              />
-            </div>
+          <form v-if="showReplyForm && isAuthenticated" @submit.prevent="submitReply" class="reply-form">
             <div class="form-group">
               <textarea 
                 v-model="replyForm.content" 
@@ -65,8 +64,8 @@
           </form>
         </transition>
 
-        <!-- 嵌套回复 -->
-        <div v-if="comment.replies && comment.replies.length > 0" class="replies">
+        <!-- 嵌套回复 - 限制最大深度 -->
+        <div v-if="comment.replies && comment.replies.length > 0 && depth < MAX_DEPTH" class="replies">
           <CommentTree 
             v-for="reply in comment.replies" 
             :key="reply.id" 
@@ -74,6 +73,7 @@
             :post-id="postId"
             :is-reply="true"
             :can-delete="canDelete"
+            :depth="depth + 1"
             @reply-submitted="handleReplySubmitted"
             @comment-deleted="handleCommentDeleted"
           />
@@ -85,6 +85,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useAuthStore } from '../store'
 
 const props = defineProps({
   comment: {
@@ -102,16 +103,23 @@ const props = defineProps({
   canDelete: {
     type: Boolean,
     default: false
+  },
+  depth: {
+    type: Number,
+    default: 0
   }
 })
 
+const MAX_DEPTH = 2 // 最大嵌套层级：0=主评论，1=一级回复，2=二级回复（最深层级）
+
 const emit = defineEmits(['reply-submitted', 'comment-deleted'])
 
+const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 const showReplyForm = ref(false)
 const submitting = ref(false)
 
 const replyForm = ref({
-  name: '',
   content: ''
 })
 
@@ -125,27 +133,50 @@ const formatDate = (dateString) => {
   })
 }
 
+const promptLogin = () => {
+  if (confirm('需要登录才能发表评论，是否前往登录页面？')) {
+    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+  }
+}
+
 const submitReply = async () => {
+  if (!replyForm.value.content.trim()) {
+    alert('请输入回复内容')
+    return
+  }
+
   try {
     submitting.value = true
+    
+    // 从 localStorage 获取用户信息
+    const userStr = localStorage.getItem('blog_user')
+    let authorName = 'Anonymous'
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        authorName = userData.name || userData.username || 'Anonymous'
+      } catch (e) {
+        console.error('解析用户数据失败:', e)
+      }
+    }
     
     const response = await fetch('/api/comments', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
       },
       body: JSON.stringify({
         post_id: parseInt(props.postId),
         parent_id: props.comment.id,
-        author_name: replyForm.value.name,
-        author_email: '',
+        author_name: authorName,
         content: replyForm.value.content
       })
     })
 
     if (response.ok) {
       showReplyForm.value = false
-      replyForm.value = { name: '', content: '' }
+      replyForm.value = { content: '' }
       emit('reply-submitted')
     } else {
       const error = await response.json()
@@ -210,7 +241,14 @@ const handleCommentDeleted = (commentId) => {
   background: var(--bg-primary);
   padding: 16px;
   margin-left: 24px;
-  border-left: 3px solid var(--accent-primary);
+  border-left: 2px solid var(--accent-primary);
+}
+
+/* 二级回复样式 */
+.replies .comment-item.is-reply {
+  margin-left: 24px;
+  border-left-width: 2px;
+  border-left-color: var(--accent-secondary);
 }
 
 .comment-item:hover {
