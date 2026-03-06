@@ -50,3 +50,6 @@ temp/
 
 # Cookies
 backend/cookies.txt
+
+# Git 配置（包含敏感信息）
+.git/config

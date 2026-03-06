@@ -14,10 +14,12 @@ router.get('/public', (req, res) => {
     (rows || []).forEach(row => {
       config[row.key] = row.value;
     });
+    // 优先使用 site_logo，兼容旧的 blog_logo
+    const logo = config.site_logo || config.blog_logo || '';
     res.json({ 
       blog_title: config.blog_title || config.site_title || 'My Blog',
       blog_description: config.blog_description || config.site_description || 'A personal blog',
-      blog_logo: config.blog_logo || ''
+      blog_logo: logo
     });
   });
 });

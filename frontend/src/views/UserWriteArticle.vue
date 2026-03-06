@@ -54,15 +54,10 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">
-            <input 
-              v-model="form.published" 
-              type="checkbox" 
-              class="checkbox" 
-              :disabled="isSubmitting"
-            />
-            立即发布
-          </label>
+          <div class="form-label-row">
+            <label class="form-label">立即发布</label>
+            <ToggleSwitch v-model="form.published" :disabled="isSubmitting" />
+          </div>
           <div class="form-hint">取消勾选将保存为草稿</div>
         </div>
 
@@ -92,6 +87,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
+import ToggleSwitch from '../components/ToggleSwitch.vue'
 
 const router = useRouter()
 

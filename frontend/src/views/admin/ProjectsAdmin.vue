@@ -180,10 +180,10 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">
-                <input v-model="formData.is_featured" type="checkbox" class="form-checkbox" />
-                设为推荐项目
-              </label>
+              <div class="form-label-row">
+                <label class="form-label">设为推荐项目</label>
+                <ToggleSwitch v-model="formData.is_featured" />
+              </div>
             </div>
           </form>
         </div>
@@ -200,6 +200,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import ToggleSwitch from '../../components/ToggleSwitch.vue'
 
 const projects = ref([])
 const loading = ref(true)

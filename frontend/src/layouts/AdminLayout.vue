@@ -457,6 +457,10 @@ onMounted(() => {
 @media (min-width: 769px) {
   .admin-main {
     margin-left: 260px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   
   .admin-sidebar.collapsed + .admin-main {
@@ -469,6 +473,10 @@ onMounted(() => {
   flex: 1;
   min-height: 100vh;
   transition: margin-left 0.3s ease;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 768px) {
@@ -491,8 +499,7 @@ onMounted(() => {
 }
 
 .admin-header {
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   background: white;
   border-bottom: 1px solid #e0e0e0;
   padding: 16px 24px;
@@ -635,6 +642,41 @@ onMounted(() => {
 
 .admin-content {
   padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 自定义滚动条样式 */
+.admin-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-content::-webkit-scrollbar-track {
+  background: #f5f5f7;
+  border-radius: 4px;
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background: #d2d2d7;
+  border-radius: 4px;
+}
+
+.admin-content::-webkit-scrollbar-thumb:hover {
+  background: #86868b;
+}
+
+/* 暗黑模式滚动条 */
+.dark .admin-content::-webkit-scrollbar-track {
+  background: #1c1c1e;
+}
+
+.dark .admin-content::-webkit-scrollbar-thumb {
+  background: #38383a;
+}
+
+.dark .admin-content::-webkit-scrollbar-thumb:hover {
+  background: #636366;
 }
 
 /* 侧边栏遮罩层 - 移动端 */

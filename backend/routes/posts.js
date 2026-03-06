@@ -146,6 +146,30 @@ router.get('/:id', optionalAuth, (req, res) => {
   db.get(query, [req.params.id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: 'Post not found' });
+    
+    // 记录浏览日志
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    let user_id = null;
+    let username = '匿名用户';
+    
+    if (token) {
+      try {
+        const { verifyToken } = require('../middleware/auth');
+        const payload = verifyToken(token);
+        if (payload) {
+          user_id = payload.id;
+          username = payload.username;
+        }
+      } catch (e) {}
+    }
+    
+    const ip_address = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+    
+    db.run(`INSERT INTO article_logs (article_id, user_id, username, action, action_type, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.id, user_id, username, '查看文章', 'view', '浏览文章详情', ip_address]);
+    
     res.json({ post: row });
   });
 });
@@ -178,6 +202,13 @@ router.put('/:id', authenticateToken, (req, res) => {
   stmt.run(title, content, content_format || 'markdown', author || req.user.username || 'Admin', tags || '', category || '', status || 'published', req.params.id, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     if (this.changes === 0) return res.status(404).json({ error: 'Post not found' });
+    
+    // 记录修改日志
+    const ip_address = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+    db.run(`INSERT INTO article_logs (article_id, user_id, username, action, action_type, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.id, req.user.id, req.user.username, '修改文章', 'update', `更新文章：${title}`, ip_address]);
+    
     res.json({ message: 'Post updated successfully' });
   });
   stmt.finalize();
@@ -189,6 +220,13 @@ router.delete('/:id', authenticateToken, (req, res) => {
   stmt.run(req.params.id, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     if (this.changes === 0) return res.status(404).json({ error: 'Post not found' });
+    
+    // 记录删除日志
+    const ip_address = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+    db.run(`INSERT INTO article_logs (article_id, user_id, username, action, action_type, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.id, req.user.id, req.user.username, '删除文章', 'delete', '删除文章', ip_address]);
+    
     res.json({ message: 'Post deleted successfully' });
   });
   stmt.finalize();

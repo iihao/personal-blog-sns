@@ -238,8 +238,13 @@ const loadStats = async () => {
     try {
       const mediaRes = await fetch('/api/media/stats')
       const mediaData = await mediaRes.json()
-      stats.value.media = mediaData
+      // API 返回格式：{stats: {total, total_size, by_type}}
+      stats.value.media = {
+        total: mediaData.stats?.total || 0,
+        size: mediaData.stats?.total_size || 0
+      }
     } catch (e) {
+      console.error('加载媒体统计失败:', e)
       stats.value.media = { total: 0, size: 0 }
     }
   } catch (error) {

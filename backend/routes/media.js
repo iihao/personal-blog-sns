@@ -176,11 +176,27 @@ router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
 
   const filePath = `/uploads/${req.file.filename}`;
   const uploadedBy = req.user ? req.user.id : null;
+  
+  // 修复中文文件名编码问题
+  let originalName = req.file.originalname;
+  try {
+    // 确保文件名是 UTF-8 编码
+    if (Buffer.isBuffer(originalName)) {
+      originalName = originalName.toString('utf8');
+    } else if (typeof originalName === 'string') {
+      // 尝试修复可能的编码问题
+      originalName = Buffer.from(originalName, 'latin1').toString('utf8');
+    }
+  } catch (e) {
+    console.error('文件名编码转换失败:', e);
+    originalName = req.file.originalname;
+  }
+  
   const stmt = db.prepare('INSERT INTO media (filename, original_name, file_path, file_size, mime_type, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)');
   
   stmt.run(
     req.file.filename,
-    req.file.originalname,
+    originalName,
     filePath,
     req.file.size,
     req.file.mimetype,
@@ -196,7 +212,7 @@ router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
         data: {
           id: this.lastID,
           filename: req.file.filename,
-          original_name: req.file.originalname,
+          original_name: originalName,
           file_path: filePath,
           file_size: req.file.size,
           mime_type: req.file.mimetype,
@@ -238,8 +254,8 @@ router.delete('/:id', authenticateToken, (req, res) => {
   });
 });
 
-// Get media stats - requires auth
-router.get('/stats', authenticateToken, (req, res) => {
+// Get media stats - public read (consistent with posts/stats and comments/stats)
+router.get('/stats', (req, res) => {
   const stats = {};
   
   db.get('SELECT COUNT(*) as total, SUM(file_size) as total_size FROM media', (err, row) => {

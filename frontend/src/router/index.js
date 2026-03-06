@@ -9,6 +9,7 @@ import Login from '../views/Login.vue'
 import AdminDashboard from '../views/admin/Dashboard.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import ArticlesView from '../views/admin/Articles.vue'
+import ArticleLogsView from '../views/admin/ArticleLogs.vue'
 import CommentsView from '../views/admin/Comments.vue'
 import MediaView from '../views/admin/Media.vue'
 import EditorView from '../views/admin/Editor.vue'
@@ -132,6 +133,11 @@ const routes = [
         path: 'articles',
         name: 'admin-articles',
         component: ArticlesView
+      },
+      {
+        path: 'articles/:id/logs',
+        name: 'admin-article-logs',
+        component: ArticleLogsView
       },
       {
         path: 'editor',

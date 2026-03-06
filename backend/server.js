@@ -133,10 +133,12 @@ const rssRoutes = require('./routes/rss');
 const changelogRoutes = require('./routes/changelog');
 const likesRoutes = require('./routes/likes');
 const projectsRoutes = require('./routes/projects');
+const articleLogsRoutes = require('./routes/article-logs');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/comments', commentsRoutes);
+app.use('/api/article-logs', articleLogsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/changelog', changelogRoutes);
 app.use('/api/likes', likesRoutes);
@@ -195,10 +197,12 @@ app.get('/api/config/public', (req, res) => {
     (rows || []).forEach(row => {
       config[row.key] = row.value;
     });
+    // 优先使用 site_logo，兼容旧的 blog_logo
+    const logo = config.site_logo || config.blog_logo || '';
     res.json({ 
       blog_title: config.blog_title || config.site_title || 'My Blog',
       blog_description: config.blog_description || config.site_description || 'A personal blog',
-      blog_logo: config.blog_logo || ''
+      blog_logo: logo
     });
   });
 });

@@ -1,6 +1,82 @@
 {
   "changelog": [
     {
+      "version": "1.5.0",
+      "date": "2026-03-05T23:00:00+08:00",
+      "changes": [
+        {
+          "type": "feature",
+          "content": "文章日志功能上线，记录浏览、点赞、修改、删除等所有操作历史"
+        },
+        {
+          "type": "feature",
+          "content": "主页滚动条优化，仅内容区域滚动，Header 和 Footer 固定"
+        },
+        {
+          "type": "feature",
+          "content": "页面跳转自动回到顶部功能，提供更好的用户体验"
+        },
+        {
+          "type": "fix",
+          "content": "修复中文文件名乱码问题，支持中文文件名正确显示"
+        },
+        {
+          "type": "fix",
+          "content": "修复 Logo 配置不生效问题，优先使用 site_logo 配置"
+        },
+        {
+          "type": "fix",
+          "content": "修复文件上传 413 错误，Nginx 支持最大 50MB 文件上传"
+        },
+        {
+          "type": "improvement",
+          "content": "GitHub 仓库绑定完成，代码已推送至 github.com/iihao/personal-blog-sns"
+        },
+        {
+          "type": "improvement",
+          "content": "管理后台滚动条优化，仅内容区域独立滚动"
+        },
+        {
+          "type": "improvement",
+          "content": "移动端 UI 全局窄边框优化，界面更紧凑美观"
+        }
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "date": "2026-03-04T22:00:00+08:00",
+      "changes": [
+        {
+          "type": "feature",
+          "content": "媒体库全面升级，支持 79+ 种文件格式（图片/视频/音频/文档等）"
+        },
+        {
+          "type": "feature",
+          "content": "文件命名规范化，自动分类前缀（img_/vid_/aud_/doc_等）"
+        },
+        {
+          "type": "feature",
+          "content": "回到顶部按钮和阅读进度条，提升长文章阅读体验"
+        },
+        {
+          "type": "feature",
+          "content": "更新日志页面正式上线，记录每次更新时间（倒序，智能显示相对时间）"
+        },
+        {
+          "type": "fix",
+          "content": "修复媒体库文件上传成功但链接无法打开的问题"
+        },
+        {
+          "type": "improvement",
+          "content": "文件大小限制从 5MB 提升到 50MB，支持大视频文件上传"
+        },
+        {
+          "type": "improvement",
+          "content": "上传进度提示优化，实时显示上传百分比和旋转图标"
+        }
+      ]
+    },
+    {
       "version": "1.3.0",
       "date": "2026-03-03T23:45:00+08:00",
       "changes": [

@@ -1146,6 +1146,20 @@ img,
   margin-bottom: 6px;
 }
 
+/* Toggle Switch - iOS 风格开关 */
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.form-label-row .form-label {
+  margin-bottom: 0;
+  flex: 1;
+}
+
 /* 全局列表项优化 */
 .list-item-narrow {
   padding: 10px 14px;

@@ -40,8 +40,8 @@ function generateToken(username) {
 function verifyToken(token) {
   try {
     const payload = JSON.parse(Buffer.from(token, 'base64').toString());
-    // 检查 token 是否过期（24 小时）
-    if (Date.now() - payload.timestamp > 24 * 60 * 60 * 1000) {
+    // 检查 token 是否过期（7 天，与前端保持一致）
+    if (Date.now() - payload.timestamp > 7 * 24 * 60 * 60 * 1000) {
       return null;
     }
     return payload;

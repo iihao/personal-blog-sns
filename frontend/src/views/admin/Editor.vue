@@ -34,10 +34,10 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">
-            <input v-model="form.published" type="checkbox" class="checkbox" />
-            立即发布
-          </label>
+          <div class="form-label-row">
+            <label class="form-label">立即发布</label>
+            <ToggleSwitch v-model="form.published" />
+          </div>
           <div class="form-hint">取消勾选将保存为草稿</div>
         </div>
 
@@ -61,6 +61,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DualEditor from '../../components/DualEditor.vue'
+import ToggleSwitch from '../../components/ToggleSwitch.vue'
 
 const router = useRouter()
 const route = useRoute()

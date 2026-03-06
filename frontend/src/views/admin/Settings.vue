@@ -290,10 +290,10 @@
           </div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">
-                <input v-model="settings.analytics_enabled" type="checkbox" class="form-checkbox" />
-                启用统计代码
-              </label>
+              <div class="form-label-row">
+                <label class="form-label">启用统计代码</label>
+                <ToggleSwitch v-model="settings.analytics_enabled" />
+              </div>
             </div>
 
             <div class="form-group">
@@ -319,10 +319,10 @@
           </div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">
-                <input v-model="settings.hero_enabled" type="checkbox" class="form-checkbox" />
-                显示 Hero 区域
-              </label>
+              <div class="form-label-row">
+                <label class="form-label">显示 Hero 区域</label>
+                <ToggleSwitch v-model="settings.hero_enabled" />
+              </div>
               <div class="form-hint">取消勾选将隐藏首页顶部的 Hero 区域</div>
             </div>
 
@@ -385,17 +385,17 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">
-                <input v-model="settings.allow_comments" type="checkbox" class="form-checkbox" />
-                允许评论
-              </label>
+              <div class="form-label-row">
+                <label class="form-label">允许评论</label>
+                <ToggleSwitch v-model="settings.allow_comments" />
+              </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">
-                <input v-model="settings.comment_audit" type="checkbox" class="form-checkbox" />
-                评论需要审核
-              </label>
+              <div class="form-label-row">
+                <label class="form-label">评论需要审核</label>
+                <ToggleSwitch v-model="settings.comment_audit" />
+              </div>
             </div>
 
             <div class="form-actions">
@@ -413,6 +413,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useMediaStore } from '../../store'
+import ToggleSwitch from '../../components/ToggleSwitch.vue'
 
 const mediaStore = useMediaStore()
 const loading = ref(true)

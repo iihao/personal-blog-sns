@@ -71,6 +71,9 @@
                   <td>{{ formatDate(post.created_at) }}</td>
                   <td>
                     <div class="action-buttons">
+                      <router-link :to="`/admin/articles/${post.id}/logs`" class="btn-icon" title="查看日志">
+                        <i class="fas fa-history"></i>
+                      </router-link>
                       <button class="btn-icon" @click="editPost(post.id)" title="编辑">
                         <i class="fas fa-edit"></i>
                       </button>
@@ -107,6 +110,10 @@
                 </div>
               </div>
               <div class="article-card-actions">
+                <router-link :to="`/admin/articles/${post.id}/logs`" class="btn-icon" title="查看日志">
+                  <i class="fas fa-history"></i>
+                  <span>日志</span>
+                </router-link>
                 <button class="btn-icon" @click="editPost(post.id)">
                   <i class="fas fa-edit"></i>
                   <span>编辑</span>

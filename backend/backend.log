@@ -1,2 +1,7 @@
 Blog backend server running on port 3000
-127.0.0.1 - - [27/Feb/2026:15:58:50 +0000] "POST /api/auth/register HTTP/1.1" 200 330 "-" "curl/7.61.1"
+127.0.0.1 - - [28/Feb/2026:05:12:57 +0000] "GET /api/posts/stats HTTP/1.1" 404 27 "-" "curl/7.61.1"
+127.0.0.1 - - [28/Feb/2026:05:12:57 +0000] "GET /api/comments/stats HTTP/1.1" 200 38 "-" "curl/7.61.1"
+127.0.0.1 - - [28/Feb/2026:05:12:57 +0000] "GET /api/media/stats HTTP/1.1" 404 26 "-" "curl/7.61.1"
+127.0.0.1 - - [28/Feb/2026:05:16:17 +0000] "GET /api/config/public HTTP/1.1" 200 87 "https://sqlboy.top/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+127.0.0.1 - - [28/Feb/2026:05:16:17 +0000] "GET /api/posts/categories HTTP/1.1" 404 27 "https://sqlboy.top/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+127.0.0.1 - - [28/Feb/2026:05:16:17 +0000] "GET /api/posts?page=1&limit=20&search=&status=published HTTP/1.1" 200 24003 "https://sqlboy.top/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"

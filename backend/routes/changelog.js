@@ -23,10 +23,21 @@ router.get('/', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     
     // 解析 changes JSON
-    const changelog = rows.map(row => ({
-      ...row,
-      changes: JSON.parse(row.changes)
-    }));
+    const changelog = rows.map(row => {
+      try {
+        return {
+          ...row,
+          changes: JSON.parse(row.changes)
+        };
+      } catch (e) {
+        console.error(`解析更新日志 ${row.id} 失败:`, e.message, 'changes:', row.changes);
+        return {
+          ...row,
+          changes: [],
+          parse_error: true
+        };
+      }
+    });
     
     res.json({ changelog });
   });
@@ -38,7 +49,12 @@ router.get('/:id', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: '更新日志不存在' });
     
-    row.changes = JSON.parse(row.changes);
+    try {
+      row.changes = JSON.parse(row.changes);
+    } catch (e) {
+      console.error(`解析更新日志 ${row.id} 失败:`, e.message);
+      row.changes = [];
+    }
     res.json({ changelog: row });
   });
 });

@@ -300,15 +300,43 @@ const viewMedia = (item) => {
 const loadMedia = async () => {
   try {
     loading.value = true
+    const token = localStorage.getItem('blog_token')
+    
+    if (!token) {
+      console.error('[Media] Token 不存在，请重新登录')
+      showToast('请先登录', 'error')
+      return
+    }
+    
+    console.log('[Media] 加载媒体列表，token 长度:', token.length)
+    
     const res = await fetch('/api/media', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('blog_token')}`
+        'Authorization': `Bearer ${token}`
       }
     })
+    
+    if (res.status === 401) {
+      console.error('[Media] Token 无效或已过期')
+      showToast('登录已过期，请重新登录', 'error')
+      localStorage.removeItem('blog_token')
+      localStorage.removeItem('blog_user')
+      window.location.href = '/login?redirect=' + encodeURIComponent('/admin/media')
+      return
+    }
+    
+    if (res.status === 403) {
+      console.error('[Media] 权限不足')
+      showToast('权限不足', 'error')
+      window.location.href = '/forbidden'
+      return
+    }
+    
     const data = await res.json()
+    console.log('[Media] 加载成功，文件数量:', data.media?.length || 0)
     media.value = data.media || []
   } catch (error) {
-    console.error('加载媒体失败:', error)
+    console.error('[Media] 加载媒体失败:', error)
     showToast('加载媒体失败，请稍后重试', 'error')
   } finally {
     loading.value = false
