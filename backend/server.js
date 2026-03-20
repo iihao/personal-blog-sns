@@ -80,6 +80,80 @@ db.serialize(() => {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Checkins table
+  db.run(`CREATE TABLE IF NOT EXISTS checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    streak INTEGER DEFAULT 1,
+    points INTEGER DEFAULT 10,
+    note TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
+  // Wallet tables
+  db.run(`CREATE TABLE IF NOT EXISTS wallets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE NOT NULL,
+    balance REAL DEFAULT 0,
+    points REAL DEFAULT 0,
+    frozen_balance REAL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    amount REAL NOT NULL,
+    balance_before REAL NOT NULL,
+    balance_after REAL NOT NULL,
+    points_before REAL NOT NULL,
+    points_after REAL NOT NULL,
+    description TEXT,
+    reference_type TEXT,
+    reference_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS recharge_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    order_no TEXT UNIQUE NOT NULL,
+    amount REAL NOT NULL,
+    points REAL DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    payment_method TEXT,
+    payment_time DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS wallet_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT UNIQUE NOT NULL,
+    value TEXT,
+    description TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Insert default wallet config
+  db.get('SELECT COUNT(*) as count FROM wallet_config', (err, row) => {
+    if (!row || row.count === 0) {
+      const stmt = db.prepare('INSERT OR IGNORE INTO wallet_config (key, value, description) VALUES (?, ?, ?)');
+      stmt.run('recharge_enabled', 'true', '是否启用充值');
+      stmt.run('withdraw_enabled', 'false', '是否启用提现');
+      stmt.run('min_recharge', '1', '最低充值金额');
+      stmt.run('max_recharge', '10000', '最高充值金额');
+      stmt.run('points_rate', '1', '积分兑换比例');
+      stmt.run('recharge_bonus_rate', '0', '充值赠送比例');
+      stmt.finalize();
+    }
+  });
+
   // Insert default admin user if not exists (password: admin123)
   db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
     if (row.count === 0) {
@@ -103,6 +177,9 @@ db.serialize(() => {
     }
   });
 });
+
+// Make database available to routes
+app.set('db', db);
 
 // Middleware
 app.use(helmet());
@@ -134,6 +211,9 @@ const changelogRoutes = require('./routes/changelog');
 const likesRoutes = require('./routes/likes');
 const projectsRoutes = require('./routes/projects');
 const articleLogsRoutes = require('./routes/article-logs');
+const checkinRoutes = require('./routes/checkin');
+const walletRoutes = require('./routes/wallet');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
@@ -143,6 +223,9 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/changelog', changelogRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/projects', projectsRoutes);
+app.use('/api/checkin', checkinRoutes.router);
+app.use('/api/wallet', walletRoutes.router);
+app.use('/api/admin', adminRoutes);
 
 // Public posts API (no auth required)
 app.use('/api/posts', publicPostsRoutes);

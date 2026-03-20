@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { computed, ref, h } from 'vue'
+import { computed, ref, h, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
@@ -29,6 +29,25 @@ const route = useRoute()
 const router = useRouter()
 const isAdminRoute = computed(() => route.path.startsWith('/admin'))
 const toast = ref(null)
+
+// 移动端自动跳转检测
+onMounted(() => {
+  // 检查是否已经跳过跳转提示
+  const hasRedirected = sessionStorage.getItem('mobile_redirect_checked')
+  if (hasRedirected) return
+  
+  // 检测设备是否为移动设备
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768)
+  
+  if (isMobile && !route.path.startsWith('/admin')) {
+    // 标记已检查，避免重复提示
+    sessionStorage.setItem('mobile_redirect_checked', 'true')
+    
+    // 无痕跳转，不记录历史
+    window.location.replace('https://m.sqlboy.top')
+  }
+})
 
 // 路由跳转时滚动到顶部
 router.afterEach((to, from) => {

@@ -28,6 +28,8 @@ import ChangelogView from '../views/ChangelogView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ProjectsAdminView from '../views/admin/ProjectsAdmin.vue'
+import CheckinView from '../views/Checkin.vue'
+import WalletView from '../views/Wallet.vue'
 
 // 导入路由守卫
 import { requireAuth, requireAdmin } from './guards'
@@ -117,6 +119,18 @@ const routes = [
     name: 'project-detail',
     component: ProjectDetailView,
     props: true
+  },
+  {
+    path: '/checkin',
+    name: 'checkin',
+    component: CheckinView,
+    beforeEnter: requireAuth
+  },
+  {
+    path: '/wallet',
+    name: 'wallet',
+    component: WalletView,
+    beforeEnter: requireAuth
   },
   {
     path: '/admin',
