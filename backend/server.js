@@ -218,6 +218,7 @@ const discoverRoutes = require('./routes/discover');
 const messagesRoutes = require('./routes/messages');
 // const searchRoutes = require('./routes/search');
 const usersRoutes = require('./routes/users');
+const statsRoutes = require('./routes/stats');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
@@ -234,6 +235,7 @@ app.use('/api/discover', discoverRoutes);
 app.use('/api/messages', messagesRoutes);
 // app.use.*searchRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Public posts API (no auth required)
 app.use('/api/posts', publicPostsRoutes);
@@ -350,5 +352,7 @@ app.use((req, res, next) => {
 // Search & Users Routes
 const searchRoutes = require('./routes/search')
 const usersRoutes = require('./routes/users')
+const statsRoutes = require('./routes/stats');
 app.use('/api/search', searchRoutes)
 app.use('/api/users', usersRoutes)
+app.use('/api/stats', statsRoutes);
