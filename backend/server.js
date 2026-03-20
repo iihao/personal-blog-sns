@@ -216,7 +216,7 @@ const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const discoverRoutes = require('./routes/discover');
 const messagesRoutes = require('./routes/messages');
-const searchRoutes = require('./routes/search');
+// const searchRoutes = require('./routes/search');
 const usersRoutes = require('./routes/users');
 
 app.use('/api/auth', authRoutes);
@@ -232,7 +232,7 @@ app.use('/api/wallet', walletRoutes.router);
 app.use('/api/admin', adminRoutes);
 app.use('/api/discover', discoverRoutes);
 app.use('/api/messages', messagesRoutes);
-app.use('/api/search', searchRoutes);
+// app.use.*searchRoutes);
 app.use('/api/users', usersRoutes);
 
 // Public posts API (no auth required)
@@ -346,3 +346,9 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block')
   next()
 })
+
+// Search & Users Routes
+const searchRoutes = require('./routes/search')
+const usersRoutes = require('./routes/users')
+app.use('/api/search', searchRoutes)
+app.use('/api/users', usersRoutes)
