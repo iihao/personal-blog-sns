@@ -6,3 +6,8 @@ Projects table initialized
 127.0.0.1 - - [20/Mar/2026:17:56:58 +0000] "GET /api/discover HTTP/1.1" 200 1493 "-" "curl/7.61.1"
 127.0.0.1 - - [20/Mar/2026:17:56:58 +0000] "GET /api/checkin/status HTTP/1.1" 401 27 "-" "curl/7.61.1"
 127.0.0.1 - - [20/Mar/2026:18:05:00 +0000] "GET /api/discover HTTP/1.1" 200 1491 "-" "curl/7.61.1"
+127.0.0.1 - - [20/Mar/2026:18:48:32 +0000] "GET /api/posts?limit=1 HTTP/1.1" 200 148324 "-" "curl/7.61.1"
+127.0.0.1 - - [20/Mar/2026:18:48:32 +0000] "GET /api/discover HTTP/1.1" 200 1493 "-" "curl/7.61.1"
+127.0.0.1 - - [20/Mar/2026:18:48:32 +0000] "GET /api/checkin/status HTTP/1.1" 401 27 "-" "curl/7.61.1"
+127.0.0.1 - - [20/Mar/2026:18:48:32 +0000] "GET /api/wallet/balance HTTP/1.1" 401 27 "-" "curl/7.61.1"
+127.0.0.1 - - [20/Mar/2026:18:48:32 +0000] "GET /api/users/me HTTP/1.1" 404 151 "-" "curl/7.61.1"
