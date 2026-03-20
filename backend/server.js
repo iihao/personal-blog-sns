@@ -216,6 +216,8 @@ const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const discoverRoutes = require('./routes/discover');
 const messagesRoutes = require('./routes/messages');
+const searchRoutes = require('./routes/search');
+const usersRoutes = require('./routes/users');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
@@ -230,6 +232,8 @@ app.use('/api/wallet', walletRoutes.router);
 app.use('/api/admin', adminRoutes);
 app.use('/api/discover', discoverRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/users', usersRoutes);
 
 // Public posts API (no auth required)
 app.use('/api/posts', publicPostsRoutes);
