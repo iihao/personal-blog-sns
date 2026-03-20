@@ -214,6 +214,8 @@ const articleLogsRoutes = require('./routes/article-logs');
 const checkinRoutes = require('./routes/checkin');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
+const discoverRoutes = require('./routes/discover');
+const messagesRoutes = require('./routes/messages');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/media', mediaRoutes);
@@ -226,6 +228,8 @@ app.use('/api/projects', projectsRoutes);
 app.use('/api/checkin', checkinRoutes.router);
 app.use('/api/wallet', walletRoutes.router);
 app.use('/api/admin', adminRoutes);
+app.use('/api/discover', discoverRoutes);
+app.use('/api/messages', messagesRoutes);
 
 // Public posts API (no auth required)
 app.use('/api/posts', publicPostsRoutes);
