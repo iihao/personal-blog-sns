@@ -1,35 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import PostView from '../views/PostView.vue'
-import NotFound from '../views/NotFound.vue'
-import Forbidden from '../views/Forbidden.vue'
-import UserSettings from '../views/UserSettings.vue'
-import Register from '../views/Register.vue'
-import Login from '../views/Login.vue'
-import AdminDashboard from '../views/admin/Dashboard.vue'
-import AdminLayout from '../layouts/AdminLayout.vue'
-import ArticlesView from '../views/admin/Articles.vue'
-import ArticleLogsView from '../views/admin/ArticleLogs.vue'
-import CommentsView from '../views/admin/Comments.vue'
-import MediaView from '../views/admin/Media.vue'
-import EditorView from '../views/admin/Editor.vue'
-import SettingsView from '../views/admin/Settings.vue'
-import UsersView from '../views/admin/Users.vue'
-import SystemConfigView from '../views/admin/SystemConfig.vue'
-import ChangelogAdminView from '../views/admin/ChangelogAdmin.vue'
-// 新增视图导入
-import CategoryView from '../views/CategoryView.vue'
-import TagView from '../views/TagView.vue'
-import CategoriesView from '../views/Categories.vue'
-import TagsView from '../views/Tags.vue'
-import SearchView from '../views/SearchView.vue'
-import UserWriteArticle from '../views/UserWriteArticle.vue'
-import ChangelogView from '../views/ChangelogView.vue'
-import ProjectsView from '../views/ProjectsView.vue'
-import ProjectDetailView from '../views/ProjectDetailView.vue'
-import ProjectsAdminView from '../views/admin/ProjectsAdmin.vue'
-import CheckinView from '../views/Checkin.vue'
-import WalletView from '../views/Wallet.vue'
+
+// 路由懒加载 - 减少初始包大小
+const HomeView = () => import('../views/HomeView.vue')
+const PostView = () => import('../views/PostView.vue')
+const NotFound = () => import('../views/NotFound.vue')
+const Forbidden = () => import('../views/Forbidden.vue')
+const UserSettings = () => import('../views/UserSettings.vue')
+const Register = () => import('../views/Register.vue')
+const Login = () => import('../views/Login.vue')
+const AdminDashboard = () => import('../views/admin/Dashboard.vue')
+const AdminLayout = () => import('../layouts/AdminLayout.vue')
+const ArticlesView = () => import('../views/admin/Articles.vue')
+const ArticleLogsView = () => import('../views/admin/ArticleLogs.vue')
+const CommentsView = () => import('../views/admin/Comments.vue')
+const MediaView = () => import('../views/admin/Media.vue')
+const EditorView = () => import('../views/admin/Editor.vue')
+const SettingsView = () => import('../views/admin/Settings.vue')
+const UsersView = () => import('../views/admin/Users.vue')
+const SystemConfigView = () => import('../views/admin/SystemConfig.vue')
+const ChangelogAdminView = () => import('../views/admin/ChangelogAdmin.vue')
+const CategoryView = () => import('../views/CategoryView.vue')
+const TagView = () => import('../views/TagView.vue')
+const CategoriesView = () => import('../views/Categories.vue')
+const TagsView = () => import('../views/Tags.vue')
+const SearchView = () => import('../views/SearchView.vue')
+const UserWriteArticle = () => import('../views/UserWriteArticle.vue')
+const ChangelogView = () => import('../views/ChangelogView.vue')
+const ProjectsView = () => import('../views/ProjectsView.vue')
+const ProjectDetailView = () => import('../views/ProjectDetailView.vue')
+const ProjectsAdminView = () => import('../views/admin/ProjectsAdmin.vue')
+const CheckinView = () => import('../views/Checkin.vue')
+const WalletView = () => import('../views/Wallet.vue')
 
 // 导入路由守卫
 import { requireAuth, requireAdmin } from './guards'
@@ -99,10 +100,9 @@ const routes = [
     component: Forbidden
   },
   {
-    path: '/write',
-    name: 'write-article',
-    component: UserWriteArticle,
-    beforeEnter: requireAuth
+    path: '/not-found',
+    name: 'not-found',
+    component: NotFound
   },
   {
     path: '/changelog',
@@ -123,8 +123,7 @@ const routes = [
   {
     path: '/checkin',
     name: 'checkin',
-    component: CheckinView,
-    beforeEnter: requireAuth
+    component: CheckinView
   },
   {
     path: '/wallet',
@@ -133,8 +132,14 @@ const routes = [
     beforeEnter: requireAuth
   },
   {
+    path: '/write',
+    name: 'write',
+    component: UserWriteArticle,
+    beforeEnter: requireAuth
+  },
+  // 管理后台路由
+  {
     path: '/admin',
-    name: 'admin',
     component: AdminLayout,
     beforeEnter: requireAdmin,
     children: [
@@ -149,14 +154,9 @@ const routes = [
         component: ArticlesView
       },
       {
-        path: 'articles/:id/logs',
+        path: 'article-logs',
         name: 'admin-article-logs',
         component: ArticleLogsView
-      },
-      {
-        path: 'editor',
-        name: 'admin-editor',
-        component: EditorView
       },
       {
         path: 'comments',
@@ -169,6 +169,17 @@ const routes = [
         component: MediaView
       },
       {
+        path: 'editor',
+        name: 'admin-editor',
+        component: EditorView
+      },
+      {
+        path: 'editor/:id',
+        name: 'admin-editor-edit',
+        component: EditorView,
+        props: true
+      },
+      {
         path: 'settings',
         name: 'admin-settings',
         component: SettingsView
@@ -177,6 +188,11 @@ const routes = [
         path: 'users',
         name: 'admin-users',
         component: UsersView
+      },
+      {
+        path: 'system-config',
+        name: 'admin-system-config',
+        component: SystemConfigView
       },
       {
         path: 'changelog',
@@ -190,16 +206,23 @@ const routes = [
       }
     ]
   },
+  // 通配符路由 - 必须放在最后
   {
     path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: NotFound
+    redirect: '/not-found'
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  }
 })
 
 export default router

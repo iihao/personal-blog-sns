@@ -169,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated } from 'vue'
+import { ref, onMounted, onUnmounted, onActivated } from 'vue'
 import TabBar from '../components/TabBar.vue'
 import { useRouter } from 'vue-router'
 
@@ -251,6 +251,17 @@ const doLogout = () => {
 
 onMounted(() => {
   checkAuth()
+  
+  // 监听 storage 事件，处理登录状态变化
+  window.addEventListener('storage', checkAuth)
+  
+  // 监听自定义登录事件
+  window.addEventListener('user-logged-in', checkAuth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('storage', checkAuth)
+  window.removeEventListener('user-logged-in', checkAuth)
 })
 </script>
 

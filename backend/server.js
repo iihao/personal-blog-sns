@@ -348,11 +348,3 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block')
   next()
 })
-
-// Search & Users Routes
-const searchRoutes = require('./routes/search')
-const usersRoutes = require('./routes/users')
-const statsRoutes = require('./routes/stats');
-app.use('/api/search', searchRoutes)
-app.use('/api/users', usersRoutes)
-app.use('/api/stats', statsRoutes);

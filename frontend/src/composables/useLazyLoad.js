@@ -1,62 +1,48 @@
 /**
- * 图片懒加载 Composable
- * 使用 Intersection Observer API 实现
+ * 图片懒加载组合式函数
  */
-
 export function useLazyLoad() {
   let observer = null
 
-  // 初始化懒加载观察器
-  const initObserver = (options = {}) => {
-    const defaultOptions = {
-      root: null,
-      rootMargin: '50px',
-      threshold: 0.01
-    }
-
-    observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
+  const observeImages = (selector = 'img[data-src]') => {
+    // 创建 Intersection Observer
+    observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           const img = entry.target
-          const dataSrc = img.getAttribute('data-src')
-          
-          if (dataSrc) {
-            img.src = dataSrc
+          const src = img.getAttribute('data-src')
+          const srcset = img.getAttribute('data-srcset')
+
+          if (src) {
+            img.src = src
             img.removeAttribute('data-src')
-            img.classList.add('loaded')
+            
+            // 如果有 srcset，也加载
+            if (srcset) {
+              img.srcset = srcset
+              img.removeAttribute('data-srcset')
+            }
+
+            // 添加加载完成的 class
+            img.classList.add('lazy-loaded')
+            
+            // 停止观察
+            observer.unobserve(img)
           }
-          
-          observer.unobserve(img)
         }
       })
-    }, { ...defaultOptions, ...options })
+    }, {
+      rootMargin: '50px 0px', // 提前 50px 开始加载
+      threshold: 0.01
+    })
 
-    return observer
-  }
-
-  // 观察单个图片
-  const observeImage = (img) => {
-    if (!observer) {
-      initObserver()
-    }
-    if (img && img.hasAttribute('data-src')) {
-      observer.observe(img)
-    }
-  }
-
-  // 观察多个图片
-  const observeImages = (selector = 'img[data-src]') => {
-    if (!observer) {
-      initObserver()
-    }
-    
+    // 观察所有匹配的图片
     const images = document.querySelectorAll(selector)
-    images.forEach(observeImage)
-    
-    return images.length
+    images.forEach(img => {
+      observer.observe(img)
+    })
   }
 
-  // 停止观察
   const disconnect = () => {
     if (observer) {
       observer.disconnect()
@@ -64,37 +50,45 @@ export function useLazyLoad() {
     }
   }
 
-  // 预处理 Markdown 内容中的图片
-  const processMarkdownImages = (html) => {
-    const temp = document.createElement('div')
-    temp.innerHTML = html
-    
-    const images = temp.querySelectorAll('img')
-    images.forEach((img) => {
-      const src = img.getAttribute('src')
-      if (src) {
-        img.setAttribute('data-src', src)
-        img.removeAttribute('src')
-        img.classList.add('lazy')
-        img.setAttribute('loading', 'lazy')
-      }
-    })
-    
-    return temp.innerHTML
-  }
-
-  // 自动初始化
-  const autoInit = () => {
-    initObserver()
-    observeImages()
-  }
-
   return {
-    initObserver,
-    observeImage,
     observeImages,
-    disconnect,
-    processMarkdownImages,
-    autoInit
+    disconnect
+  }
+}
+
+/**
+ * 图片懒加载指令
+ */
+export const lazyImage = {
+  mounted(el) {
+    const src = el.getAttribute('data-src')
+    const srcset = el.getAttribute('data-srcset')
+    
+    if (!src) return
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          el.src = src
+          if (srcset) {
+            el.srcset = srcset
+          }
+          el.classList.add('lazy-loaded')
+          observer.unobserve(el)
+        }
+      })
+    }, {
+      rootMargin: '50px 0px',
+      threshold: 0.01
+    })
+
+    observer.observe(el)
+    el._lazyObserver = observer
+  },
+  beforeUnmount(el) {
+    if (el._lazyObserver) {
+      el._lazyObserver.disconnect()
+      el._lazyObserver = null
+    }
   }
 }

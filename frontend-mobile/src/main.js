@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import './assets/main.css'
 
 // 图片懒加载指令
 const lazyLoad = {

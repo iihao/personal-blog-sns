@@ -1,42 +1,32 @@
 <template>
-  <nav class="table-of-contents" v-if="headings.length > 0">
-    <div class="toc-header">
-      <h3>
-        <i class="fas fa-list"></i> 目录
-      </h3>
-      <button 
-        @click="toggleCollapse" 
-        class="toc-toggle"
-        :title="isCollapsed ? '展开目录' : '收起目录'"
-      >
-        <i :class="isCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up'"></i>
+  <div class="table-of-contents" :class="{ 'collapsed': isCollapsed, 'mobile': isMobile }">
+    <div class="toc-header" @click="toggleCollapse">
+      <h3>📑 目录</h3>
+      <button class="toggle-btn" :class="{ 'collapsed': isCollapsed }">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
     </div>
     
-    <div class="toc-body" :class="{ collapsed: isCollapsed }">
-      <ul class="toc-list">
-        <li 
-          v-for="heading in headings" 
-          :key="heading.id"
-          :class="['toc-item', `level-${heading.level}`]"
-          :style="{ paddingLeft: `${(heading.level - 1) * 16}px` }"
-        >
-          <a 
-            :href="`#${heading.id}`"
-            @click="scrollToHeading(heading.id)"
-            :class="{ active: activeHeading === heading.id }"
-          >
-            {{ heading.text }}
-          </a>
-        </li>
-      </ul>
+    <div class="toc-body" v-show="!isCollapsed">
+      <nav v-if="headings.length > 0">
+        <ul>
+          <li v-for="heading in headings" :key="heading.id" 
+              :class="['toc-item', `level-${heading.level}`, { 'active': activeId === heading.id }]">
+            <a :href="`#${heading.id}`" @click="handleClick($event, heading.id)">
+              {{ heading.text }}
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <p v-else class="no-toc">暂无目录</p>
     </div>
-  </nav>
+  </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { useMarkdown } from '../composables/useMarkdown'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 const props = defineProps({
   content: {
@@ -45,260 +35,241 @@ const props = defineProps({
   }
 })
 
-const { extractHeadings } = useMarkdown()
 const headings = ref([])
+const activeId = ref('')
 const isCollapsed = ref(false)
-const activeHeading = ref('')
+const isMobile = ref(false)
 
-// 提取目录 - 从渲染后的 HTML 中提取
-const updateHeadings = () => {
-  headings.value = []
-  
-  // 等待 DOM 渲染完成后提取
-  setTimeout(() => {
-    const article = document.querySelector('.post-content')
-    if (!article) return
+// 提取标题
+const extractHeadings = () => {
+  const contentEl = document.querySelector('.post-content') || document.querySelector('.article-content')
+  if (!contentEl) return
+
+  const headingElements = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  headings.value = Array.from(headingElements).map((heading, index) => {
+    // 如果没有 ID，添加一个
+    if (!heading.id) {
+      heading.id = `heading-${index}`
+    }
     
-    const headingElements = article.querySelectorAll('h1, h2, h3, h4, h5, h6')
-    
-    headings.value = Array.from(headingElements).map((heading, index) => {
-      // 如果没有 ID，生成一个
-      if (!heading.id) {
-        heading.id = `heading-${index}`
-      }
-      
-      return {
-        id: heading.id,
-        text: heading.textContent.trim(),
-        level: parseInt(heading.tagName.charAt(1))
-      }
-    })
-    
-    console.log('目录更新:', headings.value.length, '个标题')
-  }, 100)
+    return {
+      id: heading.id,
+      text: heading.textContent.trim(),
+      level: parseInt(heading.tagName.charAt(1))
+    }
+  })
 }
 
-// 滚动到指定标题
-const scrollToHeading = (id) => {
+// 滚动监听
+const handleScroll = () => {
+  const scrollPosition = window.scrollY + 100
+  
+  for (let i = headings.value.length - 1; i >= 0; i--) {
+    const heading = headings.value[i]
+    const element = document.getElementById(heading.id)
+    
+    if (element && element.offsetTop <= scrollPosition) {
+      activeId.value = heading.id
+      break
+    }
+  }
+}
+
+// 点击处理
+const handleClick = (event, id) => {
+  event.preventDefault()
   const element = document.getElementById(id)
   if (element) {
-    const offset = 80 // 固定头部高度
+    const offset = 80 // 头部高度
     const elementPosition = element.getBoundingClientRect().top
-    const offsetPosition = offset + elementPosition + window.pageYOffset - 80
-
+    const offsetPosition = offset + elementPosition + window.pageYOffset
+    
     window.scrollTo({
       top: offsetPosition,
       behavior: 'smooth'
     })
     
-    activeHeading.value = id
+    // 更新 URL hash
+    history.pushState(null, null, `#${id}`)
   }
 }
 
-// 切换收起/展开
+// 切换折叠
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value
+  localStorage.setItem('toc-collapsed', isCollapsed.value)
 }
 
-// 监听滚动高亮当前章节
-const handleScroll = () => {
-  const scrollPosition = window.scrollY + 150
-  
-  for (const heading of headings.value) {
-    const element = document.getElementById(heading.id)
-    if (element) {
-      const elementTop = element.offsetTop
-      const elementBottom = elementTop + element.offsetHeight
-      
-      if (scrollPosition >= elementTop && scrollPosition < elementBottom) {
-        activeHeading.value = heading.id
-        break
-      }
-    }
-  }
+// 检查移动端
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768
 }
 
-// 监听内容变化
-watch(() => props.content, updateHeadings, { immediate: true })
-
-// 生命周期
 onMounted(() => {
-  updateHeadings()
+  // 等待内容渲染
+  setTimeout(() => {
+    extractHeadings()
+  }, 100)
+  
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('resize', checkMobile)
+  checkMobile()
+  
+  // 恢复折叠状态
+  const saved = localStorage.getItem('toc-collapsed')
+  if (saved !== null) {
+    isCollapsed.value = saved === 'true'
+  }
+  
+  // 如果有 hash，滚动到对应位置
+  if (window.location.hash) {
+    const id = window.location.hash.slice(1)
+    setTimeout(() => {
+      handleClick({ preventDefault: () => {} }, id)
+    }, 200)
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
 <style scoped>
 .table-of-contents {
-  position: fixed;
-  top: 100px;
-  right: max(24px, calc((100vw - 1200px) / 2 - 280px));
-  width: 240px;
-  max-height: calc(100vh - 140px);
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
+  position: sticky;
+  top: 80px;
+  background: white;
+  border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 2px 12px var(--shadow-color);
-  transition: all 0.3s ease;
-  z-index: 100;
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-/* 1024-1400px 区间调整为相对定位 */
-@media (max-width: 1280px) {
-  .table-of-contents {
-    position: relative;
-    top: 0;
-    right: 0;
-    width: 100%;
-    max-height: none;
-    margin: 24px 0;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
 .toc-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .toc-header h3 {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.toc-header h3 i {
-  color: var(--accent-primary);
-}
-
-.toc-toggle {
+.toggle-btn {
   background: none;
   border: none;
+  padding: 4px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
+  color: #6b7280;
+  transition: transform 0.3s;
 }
 
-.toc-toggle:hover {
-  background: var(--bg-tertiary);
-  color: var(--accent-primary);
+.toggle-btn.collapsed {
+  transform: rotate(-180deg);
+}
+
+.toggle-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .toc-body {
-  max-height: calc(100vh - 250px);
+  max-height: 500px;
   overflow-y: auto;
-  overflow-x: hidden;
-  transition: max-height 0.3s ease;
-  padding-right: 4px;
 }
 
-.toc-body.collapsed {
-  max-height: 0;
-  overflow: hidden;
-  padding: 0;
-}
-
-/* 移动端隐藏目录 */
-@media (max-width: 1024px) {
-  .table-of-contents {
-    display: none;
-  }
-}
-
-.toc-list {
+.toc-body nav ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
 .toc-item {
-  margin: 2px 0;
+  margin: 0;
 }
 
 .toc-item a {
   display: block;
   padding: 8px 12px;
-  border-radius: 8px;
+  color: #4b5563;
   text-decoration: none;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
+  font-size: 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  line-height: 1.5;
 }
 
 .toc-item a:hover {
-  background: rgba(124, 58, 237, 0.1);
-  color: var(--accent-primary);
-  transform: translateX(2px);
+  background: #f3f4f6;
+  color: #667eea;
 }
 
-.toc-item a.active {
-  background: rgba(124, 58, 237, 0.15);
-  color: var(--accent-primary);
-  font-weight: 600;
+.toc-item.active a {
+  background: #667eea;
+  color: white;
 }
 
-/* 层级缩进 */
-.toc-item.level-2 {
-  margin-left: 0;
+/* 不同层级的缩进 */
+.level-2 {
+  padding-left: 0;
 }
 
-.toc-item.level-3 {
-  margin-left: 12px;
+.level-3 {
+  padding-left: 16px;
 }
 
-.toc-item.level-4 {
-  margin-left: 24px;
+.level-4 {
+  padding-left: 32px;
 }
 
-/* 滚动条样式 */
+.level-5,
+.level-6 {
+  padding-left: 48px;
+}
+
+.no-toc {
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* 移动端样式 */
+.table-of-contents.mobile {
+  position: fixed;
+  bottom: 70px;
+  right: 16px;
+  top: auto;
+  max-height: 300px;
+  z-index: 100;
+  width: 280px;
+}
+
+/* 滚动条美化 */
 .toc-body::-webkit-scrollbar {
   width: 4px;
 }
 
 .toc-body::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f3f4f6;
+  border-radius: 2px;
 }
 
 .toc-body::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: #d1d5db;
   border-radius: 2px;
 }
 
 .toc-body::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-}
-
-/* 响应式 */
-@media (max-width: 1024px) {
-  .table-of-contents {
-    position: relative;
-    top: 0;
-    max-width: 100%;
-  }
+  background: #9ca3af;
 }
 </style>

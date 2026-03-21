@@ -1,20 +1,22 @@
 <template>
-  <button
-    v-show="visible"
-    @click="scrollToTop"
+  <button 
+    v-show="visible" 
     class="back-to-top"
-    :class="{ 'visible': visible }"
-    aria-label="回到顶部"
+    @click="scrollToTop"
+    :style="{ opacity: visible ? 1 : 0 }"
+    title="返回顶部"
   >
-    <i class="fas fa-arrow-up"></i>
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+    </svg>
   </button>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const visible = ref(false)
-const scrollThreshold = 300 // 滚动超过 300px 显示
+const scrollThreshold = 300
 
 const handleScroll = () => {
   visible.value = window.scrollY > scrollThreshold
@@ -28,11 +30,10 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll, { passive: true })
-  handleScroll() // 初始检查
+  window.addEventListener('scroll', handleScroll)
 })
 
-onBeforeUnmount(() => {
+onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
@@ -40,51 +41,58 @@ onBeforeUnmount(() => {
 <style scoped>
 .back-to-top {
   position: fixed;
-  bottom: -60px;
-  right: 32px;
+  bottom: 100px;
+  right: 30px;
   width: 50px;
   height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
+  border-radius: 50%;
+  color: white;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1000;
-  opacity: 0;
-}
-
-.back-to-top.visible {
-  bottom: 32px;
-  opacity: 1;
 }
 
 .back-to-top:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
 }
 
 .back-to-top:active {
   transform: translateY(-2px);
 }
 
-/* 移动端优化 */
+.back-to-top svg {
+  width: 24px;
+  height: 24px;
+}
+
 @media (max-width: 768px) {
   .back-to-top {
+    bottom: 80px;
     right: 20px;
-    bottom: -60px;
     width: 44px;
     height: 44px;
-    font-size: 18px;
   }
+  
+  .back-to-top svg {
+    width: 20px;
+    height: 20px;
+  }
+}
 
-  .back-to-top.visible {
-    bottom: 20px;
-  }
+/* 深色模式适配 */
+:global(.dark) .back-to-top {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  box-shadow: 0 4px 12px rgba(90, 103, 216, 0.4);
+}
+
+:global(.dark) .back-to-top:hover {
+  box-shadow: 0 8px 20px rgba(90, 103, 216, 0.6);
 }
 </style>

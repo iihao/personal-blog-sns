@@ -108,9 +108,18 @@ const handleLogin = async () => {
     
     if (data.success || data.token) {
       const token = data.token || data.data?.token
+      const user = data.user || data.data?.user
+      
       localStorage.setItem('token', token)
-      sessionStorage.clear()
-      window.location.href = '/'
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
+      
+      // 触发存储事件，通知其他组件
+      window.dispatchEvent(new Event('storage'))
+      
+      // 使用 router 导航，保持 Vue 状态
+      router.push('/')
     } else {
       alert(data.error || data.message || '登录失败')
     }

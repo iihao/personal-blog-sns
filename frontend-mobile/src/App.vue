@@ -5,7 +5,10 @@
 </template>
 
 <script setup>
-// App 根组件
+import { useSEO } from './composables/useSEO'
+
+// 初始化 SEO
+useSEO()
 </script>
 
 <style>

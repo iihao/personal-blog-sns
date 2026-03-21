@@ -2,10 +2,10 @@ const express = require('express')
 const router = express.Router()
 const sqlite3 = require('sqlite3').verbose()
 const db = new sqlite3.Database('./blog.db', sqlite3.OPEN_READONLY)
-const auth = require('../middleware/auth')
+const { authenticateToken } = require('../middleware/auth')
 
 // 获取当前用户信息
-router.get('/me', auth, (req, res) => {
+router.get('/me', authenticateToken, (req, res) => {
   const userId = req.user.id
   db.get('SELECT id, username, email, avatar, bio, created_at FROM users WHERE id = ?', [userId], (err, row) => {
     if (err) return res.status(500).json({ error: '查询失败' })

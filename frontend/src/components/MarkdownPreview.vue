@@ -3,9 +3,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch, h } from 'vue'
 import { useMarkdown } from '../composables/useMarkdown'
 import { useLazyLoad } from '../composables/useLazyLoad'
+import CodeBlock from './CodeBlock.vue'
 
 const props = defineProps({
   content: {

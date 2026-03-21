@@ -1,9 +1,10 @@
 <template>
   <div class="post-view">
     <!-- 阅读进度条 -->
-    <div class="reading-progress-bar">
-      <div class="progress-fill" :style="{ width: scrollProgress + '%' }"></div>
-    </div>
+    <ReadingProgress />
+
+    <!-- 回到顶部按钮 -->
+    <BackToTop />
 
     <!-- 主题切换按钮 -->
     <div class="theme-toggle-fixed">
@@ -58,14 +59,21 @@
             </div>
           </header>
           
-          <div class="post-content">
-            <!-- 自动判断内容格式：如果包含 HTML 标签则直接渲染 -->
-            <template v-if="post.content_format === 'richText' || (post.content && post.content.trim().startsWith('<'))">
-              <div class="rich-text-content" v-html="post.content"></div>
-            </template>
-            <template v-else>
-              <MarkdownPreview :content="post.content" />
-            </template>
+          <div class="post-content-wrapper">
+            <div class="post-content">
+              <!-- 自动判断内容格式：如果包含 HTML 标签则直接渲染 -->
+              <template v-if="post.content_format === 'richText' || (post.content && post.content.trim().startsWith('<'))">
+                <div class="rich-text-content" v-html="post.content"></div>
+              </template>
+              <template v-else>
+                <MarkdownPreview :content="post.content" />
+              </template>
+            </div>
+            
+            <!-- 文章目录 -->
+            <aside class="post-toc">
+              <TableOfContents :content="post.content" />
+            </aside>
           </div>
           
           <!-- Post Footer -->
@@ -91,6 +99,9 @@
               <i class="fas fa-exclamation-circle"></i> {{ likeError }}
             </div>
           </div>
+
+          <!-- Share Buttons -->
+          <ShareButtons />
 
           <!-- Navigation -->
           <div class="post-navigation">
@@ -184,6 +195,9 @@ import ThemeToggle from '../components/ThemeToggle.vue'
 import MarkdownPreview from '../components/MarkdownPreview.vue'
 import TableOfContents from '../components/TableOfContents.vue'
 import CommentTree from '../components/CommentTree.vue'
+import ReadingProgress from '../components/ReadingProgress.vue'
+import BackToTop from '../components/BackToTop.vue'
+import ShareButtons from '../components/ShareButtons.vue'
 import { useMarkdown } from '../composables/useMarkdown'
 
 const route = useRoute()
@@ -733,15 +747,37 @@ const toggleLike = async () => {
 }
 
 /* ===== 文章内容 ===== */
+.post-content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1024px) {
+  .post-content-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  .post-toc {
+    display: none;
+  }
+}
+
 .post-content {
   background: var(--card-bg);
   border-radius: 20px;
   padding: 48px;
-  margin-bottom: 32px;
   box-shadow: 0 2px 12px var(--shadow-color);
   font-size: 1.0625rem;
   line-height: 1.9;
   color: var(--text-primary);
+}
+
+.post-toc {
+  position: sticky;
+  top: 100px;
+  height: fit-content;
 }
 
 @media (max-width: 768px) {
