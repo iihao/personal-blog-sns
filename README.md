@@ -2,7 +2,7 @@
 
 一个现代化的个人博客平台，采用前后端分离架构。
 
-**在线演示:** [blog.sqlboy.top](https://blog.sqlboy.top)
+**在线演示:** [sqlboy.top](https://sqlboy.top)
 
 ---
 
